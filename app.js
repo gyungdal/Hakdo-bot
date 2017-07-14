@@ -104,14 +104,17 @@ if (cluster.isWorker) {
 	
 	client.on('message', message => {
 		if(message.author.id == 253024615285129227 &
-		message.content.indexOf('h!exec') == 0)
-		exec(message.content.split(' ')[1], (error, stdout, stderr) =>{
-			if(error){
-				message.reply('<ERROR>\n' + error);
-				return;
-			}
-			message.reply('<STDOUT>\n' + stdout);
-		});
+		message.content.indexOf('h!exec') == 0){
+			console.log(message.content.replace('h!exec', '').trim());
+			exec(message.content.replace('h!exec', '').trim(), (error, stdout, stderr) =>{
+				if(error){
+					message.reply('<ERROR>\n' + error);
+					return;
+				}
+				console.log(stdout);
+				message.reply('<STDOUT>\n' + stdout);
+			});
+		}
 	});
 	
 	client.on('message', message => {
