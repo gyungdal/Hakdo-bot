@@ -73,8 +73,13 @@ if (cluster.isWorker) {
 		//console.log(message);
 		if(message.content.indexOf('h!macro') == 0){
 			const value = message.content.split(' ')[1];
+			console.log(value);
 			if(value.indexOf("h!") != -1){
 				message.reply("NOP!");
+				return;
+			}
+			if(value.indexOf("253024615285129227") != -1){
+				message.reply("NOP!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 				return;
 			}
 			const time = message.content.split(' ')[2];
