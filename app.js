@@ -11,9 +11,14 @@ if (cluster.isMaster) {
 		if(message == 'start'){
 			worker = cluster.fork();
 			worker.send('Restart finish!');
+			for (var i in cluster.workers) {
+				if (i == 0)
+					continue;
+				cluster.workers[i].kill();
+			}
 		}else if(message == 'kill'){
-			for (var id in cluster.workers) {
-				cluster.workers[id].kill();
+			for (var i in cluster.workers) {
+				cluster.workers[i].kill();
 			}
 			process.exit(0);
 		}
@@ -26,8 +31,10 @@ if (cluster.isMaster) {
 	
 	cluster.on('exit', function(worker, code, signal) {
 		console.log('worker is dead : ' + worker.process.pid);
-		worker = cluster.fork();
-		worker.send('Worker is dead, auto restart start');
+		if(code != 0){
+			worker = cluster.fork();
+			worker.send('Worker is dead, auto restart start');
+		}
 	});
 	
 }
@@ -73,8 +80,8 @@ if (cluster.isWorker) {
 			const time = message.content.split(' ')[2];
 			if(time < 0)
 				return;
+			const channel = client.channels.find('name', 'general');
 			for(var i = 1;i<=time;i++){
-				const channel = client.channels.find('name', 'general');
 				channel.sendMessage(value);
 			}
 		}
@@ -106,12 +113,20 @@ if (cluster.isWorker) {
 			message.reply('<STDOUT>\n' + stdout);
 		});
 	});
-	var sshConnect;
-	var seq;
+	
+	client.on('message', message => {
+		if(message.author.id == 253024615285129227 & 
+			message.content.indexOf('h!sshList') == 0){
+			message.reply(sshConnect);
+		}
+	});
+	
+	var sshConnect = {};
+	var seq = {};
 	
 	client.on('message', message => {
 		var url, user, port;
-		if(message.content.indexOf('h!ssh') == 0){
+		if(message.content.indexOf('h!ssh ') == 0){
 			console.log('SSH');
 			const argv = message.content.split(' ');
 			console.log(argv);
@@ -132,8 +147,13 @@ if (cluster.isWorker) {
 						console.log('USER : ' + url);
 						break;
 				}
+			
 				console.log(value);
 				before = value;
+			}
+			if(url.indexOf("@") != -1){
+				user = url.split("@")[0];
+				url = url.split("@")[1];
 			}
 			//h!ssh -url gyungdal.iptime.org -p 24 -user gyungdal -pw aa1003
 			// const channel = client.channels.find('name', 'general');
@@ -143,22 +163,22 @@ if (cluster.isWorker) {
 					port = 22;
 				}
 				const pty = require("pty.js");
-				term = pty.spawn("ssh", [user + "@" + url, "-p", port]);
+				seq[message.author.id] = pty.spawn("ssh", [user + "@" + url, "-p", port]);
 
-				term.on("data", function(data) {
+				seq[message.author.id].on("data", function(data) {
 					message.reply(data);
 				});
-				
-				sshConnect = true;
+				sshConnect[message.author.id] = true;
 			}
 		}
-		if(message.content.indexOf('!') == 0 & sshConnect == true){
+		if(message.content.indexOf('!') == 0 & sshConnect[message.author.id] == true){
 			if(message.content.indexOf('!exit') == 0){
-				term.write('exit\r\n');
-				sshConnect = false;
+				seq[message.author.id].write('exit\r\n');
+				delete sshConnect[message.author.id];
 				message.reply("ssh close");
+				delete seq[message.author.id];
 			}else{
-				term.write(message.content.substring(1) + '\r\n');
+				seq[message.author.id].write(message.content.substring(1) + '\r\n');
 			}
 		}
 	});
