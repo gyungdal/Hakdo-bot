@@ -1,0 +1,117 @@
+const cluster = require('cluster');
+const fs = require('fs');
+const botToken = require('./token').token;
+
+console.log(botToken);
+  
+if (cluster.isMaster) {
+	var worker = cluster.fork();
+	
+	worker.on('message', function (message) {
+		if(message == "start"){
+			worker = cluster.fork();
+			worker.send("Restart finish!");
+		}
+	});
+	
+	
+	cluster.on('online', function(worker, code, signal) {
+		console.log("worker restart : " + worker.process.pid);
+	});
+	
+	cluster.on('exit', function(worker, code, signal) {
+		console.log("worker is dead : " + worker.process.pid);
+	});
+	
+}
+
+
+if (cluster.isWorker) {
+	const Discord = require('discord.js');
+	const client = new Discord.Client();
+		
+	var exec = require('child_process').exec;
+	
+	process.on('message', function(message) {
+		client.on('ready', () => {	
+			console.log(message);
+			var channel = client.channels.find("name", "general");
+			channel.sendMessage(message);
+		});
+	});	
+	
+	client.login(botToken);
+
+	client.on('ready', () => {
+		console.log('I am ready!');
+	});
+
+	client.on('message', message => {
+		//console.log(message);
+		if(message.content.indexOf("h!help") == 0){
+			message.reply("```\n h!map <ORIGIN> <DEST>\n```");
+		}
+	});
+	
+	client.on('message', message => {
+		if(message.author.id == 253024615285129227 & 
+			message.content.indexOf("h!restart") == 0){
+			process.send("start");
+			process.exit(0);
+		}
+	});
+	
+	client.on('message', message => {
+		if(message.author.id == 253024615285129227 &
+		message.content.indexOf("h!exec") == 0)
+		exec(message.content.split(" ")[1], (error, stdout, stderr) =>{
+			if(error){
+				message.reply("<ERROR>\n" + error);
+				return;
+			}
+			message.reply("<STDOUT>\n" + stdout);
+		});
+	});
+	var sshConnect;
+	var seq;
+	client.on('message', message => {
+		var url, user, pw, port;
+		if(message.content.indexOf('h!ssh') == 0){
+			const argv = message.content.split(" ");
+			var before = "";
+			for(var value in argv){
+				switch(before){
+					case "-url" : url = value; break;
+					case "-p" : port = value; break;
+					case "-user" : user = value; break;
+					case "-pw" : pw = value; break;
+			}
+			if(typeof url != "undefined" & typeof user != 'undefined' &
+				typeof pw != 'undefined'){
+				if(typeof port == 'undefined'){
+					port = 22;
+				}
+				const sequest = require('sequest');
+				seq = sequest(url + ':' + port, {
+					username = user,
+					passwrod = pw
+				}, function (err, stdout){
+					const channel = client.channels.find("name", "general");
+					channel.sendMessage(stdout);
+				});
+				seq.pipe(process.stdout);
+				sshConnect = true;
+			}
+		}
+		if(message.content.indexOf('!') == 0 & sshConnect == true){
+			if(message.content.indexOf('!exit')){
+				seq.end();
+				sshConnect = false;
+				seq = null;
+			}else{
+				seq.send(message.content.substring(1));
+			}
+		}
+	});
+
+}
