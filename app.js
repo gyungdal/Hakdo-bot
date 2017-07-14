@@ -56,7 +56,27 @@ if (cluster.isWorker) {
 	client.on('message', message => {
 		//console.log(message);
 		if(message.content.indexOf('h!help') == 0){
-			message.reply('```\n h!map <ORIGIN> <DEST>\n```');
+			message.reply('h!exec <COMMAND> : Command Run\nh!ssh -url <URL> -p <PORT> -user <USER> ' +
+			': SSH connect\nh!kill : Suicide\nh!restart : Restart Hakdo bot\nh!macro <Value> <Count> ' + 
+			': Sent the specified number of times\n');
+		}
+	});
+	
+	client.on('message', message => {
+		//console.log(message);
+		if(message.content.indexOf('h!macro') == 0){
+			const value = message.content.split(' ')[1];
+			if(value.indexOf("h!") != -1){
+				message.reply("NOP!");
+				return;
+			}
+			const time = message.content.split(' ')[2];
+			if(time < 0)
+				return;
+			for(var i = 1;i<=time;i++){
+				const channel = client.channels.find('name', 'general');
+				channel.sendMessage(value);
+			}
 		}
 	});
 	
