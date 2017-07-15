@@ -3,7 +3,7 @@ const fs = require('fs');
 const botToken = require('./token').token;
 const weatherApiKey = require('./token').weather;
 console.log(botToken);
-  
+
 if (cluster.isMaster) {
 	var worker = cluster.fork();
 	
@@ -42,7 +42,7 @@ if (cluster.isMaster) {
 if (cluster.isWorker) {
 	const Discord = require('discord.js');
 	const client = new Discord.Client();
-		
+	var admins = ["253024615285129227"];
 	var exec = require('child_process').exec;
 	
 	process.on('message', function(message) {
@@ -91,9 +91,38 @@ if (cluster.isWorker) {
 	client.on('message', message => {
 		//console.log(message);
 		if(message.content.indexOf('h!help') == 0){
-			message.reply('```\nh!exec <COMMAND> : Command Run\nh!ssh -url <URL> -p <PORT> -user <USER> ' +
-			': SSH connect\nh!kill : Suicide\nh!restart : Restart Hakdo bot\nh!macro <Value> <Count> ' + 
+			message.reply('<관리자 전용>\n```\nh!exec <COMMAND> : Command Run\nh!kill : Suicide\nh!restart : Restart Hakdo bot\n' +
+			'h!python <Code> : Python Execute\n' +
+			'```\n\n<일반 사용자용>```' +
+			'h!ssh -url <URL> -p <PORT> -user <USER> ' +
+			': SSH connect\nh!macro <Value> <Count> ' + 
 			': Sent the specified number of times\n```');
+		}
+	});
+	
+	
+	client.on('message', message => {
+		console.log(message.content);
+		const uuid = message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'));
+		console.log(uuid);
+
+		if(message.content.indexOf('h!admin') == 0 & admins.indexOf(message.author.id) == 0){
+			if(admins.indexOf(uuid) == -1){
+				admins.push(uuid);
+				message.reply("NEW ADMIN : <@" + uuid + '>');
+			}
+		}
+	});
+	
+	client.on('message', message => {
+		console.log(message.content);
+		const uuid = message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'));
+		console.log(uuid);
+		if(message.content.indexOf('h!logout') == 0 & admins.indexOf(message.author.id) == 0){
+			if(admins.indexOf(uuid) != -1){
+				delete admins[admins.indexOf(uuid)];
+				message.reply("DELETE ADMIN : <@" + uuid + '>');
+			}
 		}
 	});
 	
@@ -107,7 +136,7 @@ if (cluster.isWorker) {
 				message.reply("NOP!");
 				return;
 			}
-			if(value.indexOf("253024615285129227") != -1){
+			if(value.indexOf("") != -1){
 				message.reply("NOP!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 				return;
 			}
@@ -122,14 +151,14 @@ if (cluster.isWorker) {
 	});
 	
 	client.on('message', message => {
-		if(message.author.id == 253024615285129227 & 
+		if(admins.indexOf(message.author.id) != -1 & 
 			message.content.indexOf('h!kill') == 0){
 			process.send('kill');
 			process.exit(0);
 		}
 	});
 	client.on('message', message => {
-		if(message.author.id == 253024615285129227 & 
+		if(admins.indexOf(message.author.id) != -1 & 
 			message.content.indexOf('h!restart') == 0){
 			process.send('start');
 			process.exit(0);
@@ -138,7 +167,29 @@ if (cluster.isWorker) {
 	
 	
 	client.on('message', message => {
-		if(message.author.id == 253024615285129227 &
+		if(admins.indexOf(message.author.id) != -1 &
+		message.content.indexOf('h!python') == 0){
+			const command = message.content.replace('h!python', '').trim();
+			console.log(command);
+			fs.writeFile('/Users/gyungdal/Hakdo bot/temp.py', command, function(err) {
+				if(err) throw err;
+				console.log('File write completed');
+			});
+			exec("python '/Users/gyungdal/Hakdo bot/temp.py'", (error, stdout, stderr) =>{
+				if(error){
+					message.reply('<ERROR>\n' + error);
+					return;
+				}
+				console.log(stdout);
+				message.reply('<STDOUT>\n' + stdout);
+			});
+			
+		}
+	});
+	
+	
+	client.on('message', message => {
+		if(admins.indexOf(message.author.id) != -1 &
 		message.content.indexOf('h!exec') == 0){
 			console.log(message.content.replace('h!exec', '').trim());
 			exec(message.content.replace('h!exec', '').trim(), (error, stdout, stderr) =>{
@@ -153,7 +204,7 @@ if (cluster.isWorker) {
 	});
 	
 	client.on('message', message => {
-		if(message.author.id == 253024615285129227 & 
+		if(admins.indexOf(message.author.id) != -1 & 
 			message.content.indexOf('h!sshList') == 0){
 			message.reply(sshConnect);
 		}
