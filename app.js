@@ -102,11 +102,8 @@ if (cluster.isWorker) {
 	
 	
 	client.on('message', message => {
-		console.log(message.content);
 		const uuid = message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'));
-		console.log(uuid);
-
-		if(message.content.indexOf('h!admin') == 0 & admins.indexOf(message.author.id) == 0){
+		if(message.content.indexOf('h!admin ') == 0 & admins.indexOf(message.author.id) == 0){
 			if(admins.indexOf(uuid) == -1){
 				admins.push(uuid);
 				message.reply("NEW ADMIN : <@" + uuid + '>');
@@ -115,10 +112,29 @@ if (cluster.isWorker) {
 	});
 	
 	client.on('message', message => {
-		console.log(message.content);
+		if(message.content.indexOf('h!adminList') == 0 & admins.indexOf(message.author.id) == 0){
+			var temp = "";
+			admins.forEach(function(value){
+				temp = temp + "<@" + value + '> ';
+			});
+			message.reply('\n\n<ADMIN LIST>\n' + temp);
+		}
+	});
+	
+	client.on('message', message => {
+		if(message.content.indexOf('h!logoutAll') == 0 & admins.indexOf(message.author.id) == 0){
+			for(var i in admins){
+				if(i == 0)
+					continue;
+				delete admins[i];
+			}
+			message.reply("DELETE ALL CUSTOM ADMIN\n");
+		}
+	});
+	client.on('message', message => {
 		const uuid = message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'));
 		console.log(uuid);
-		if(message.content.indexOf('h!logout') == 0 & admins.indexOf(message.author.id) == 0){
+		if(message.content.indexOf('h!logout ') == 0 & admins.indexOf(message.author.id) == 0){
 			if(admins.indexOf(uuid) != -1){
 				delete admins[admins.indexOf(uuid)];
 				message.reply("DELETE ADMIN : <@" + uuid + '>');
