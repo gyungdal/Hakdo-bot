@@ -1,7 +1,7 @@
 const cluster = require('cluster');
 const fs = require('fs');
 const botToken = require('./token').token;
-
+const weatherApiKey = require('./token').weather;
 console.log(botToken);
   
 if (cluster.isMaster) {
@@ -39,7 +39,6 @@ if (cluster.isMaster) {
 	
 }
 
-var term;
 if (cluster.isWorker) {
 	const Discord = require('discord.js');
 	const client = new Discord.Client();
@@ -59,20 +58,50 @@ if (cluster.isWorker) {
 	client.on('ready', () => {
 		console.log('I am ready!');
 	});
+	
+	client.on('message', message => {
+		if(message.content.indexOf('h!weather') == 0){
+			const request = require('request');
+			let city = 'portland';
+			let url = 'http://api.openweathermap.org/data/2.5/' + 
+				'weather?q=' + message.content.split(' ')[1] + '&appid=' + weatherApiKey;
+
+			request(url, function (err, response, body) {
+				if(err){
+					console.log('error:', error);
+				} else {
+					console.log(body);
+					body = JSON.stringify(body);
+					const weather = body.weather;
+					const weatherMain = weather[0]['main'];
+					console.log(weather);
+					const weatherDesc = weather[0]['description'];
+					const temp = body.main.temp;
+					const humi = body.main.humidity;
+					const temp_min = body.main.temp_min;
+					const temp_max = body.main.temp_max;
+					const wind_speed = body.wind.speed;
+					message.reply(`<Weather>\nWEATHER : ${weather}\nTEMP : ${temp}\nHUMI : ${humi}`);
+					
+				}
+			});
+		}
+	});
 
 	client.on('message', message => {
 		//console.log(message);
 		if(message.content.indexOf('h!help') == 0){
-			message.reply('h!exec <COMMAND> : Command Run\nh!ssh -url <URL> -p <PORT> -user <USER> ' +
+			message.reply('```\nh!exec <COMMAND> : Command Run\nh!ssh -url <URL> -p <PORT> -user <USER> ' +
 			': SSH connect\nh!kill : Suicide\nh!restart : Restart Hakdo bot\nh!macro <Value> <Count> ' + 
-			': Sent the specified number of times\n');
+			': Sent the specified number of times\n```');
 		}
 	});
 	
 	client.on('message', message => {
 		//console.log(message);
 		if(message.content.indexOf('h!macro') == 0){
-			const value = message.content.split(' ')[1];
+			
+			const value = message.content.substring(message.content.indexOf(" "), message.content.lastIndexOf(" ")).trim();
 			console.log(value);
 			if(value.indexOf("h!") != -1){
 				message.reply("NOP!");
@@ -82,7 +111,7 @@ if (cluster.isWorker) {
 				message.reply("NOP!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 				return;
 			}
-			const time = message.content.split(' ')[2];
+			const time = message.content.substring(message.content.lastIndexOf(' ') + 1).trim();
 			if(time < 0)
 				return;
 			const channel = client.channels.find('name', 'general');
@@ -106,6 +135,7 @@ if (cluster.isWorker) {
 			process.exit(0);
 		}
 	});
+	
 	
 	client.on('message', message => {
 		if(message.author.id == 253024615285129227 &
