@@ -118,8 +118,16 @@ if (cluster.isWorker) {
 				temp = temp + "<@" + value + '> ';
 			});
 			message.reply('\n\n<ADMIN LIST>\n' + temp);
-		}
+		} 
 	});
+	
+	client.on('message', message => {
+		if(message.content.indexOf('h!pid') == 0){
+			console.log(process.pid);
+			message.reply("\nPID : " + process.pid);
+		} 
+	});
+	
 	
 	client.on('message', message => {
 		if(message.content.indexOf('h!logoutAll') == 0 & admins.indexOf(message.author.id) == 0){
@@ -131,11 +139,11 @@ if (cluster.isWorker) {
 			message.reply("DELETE ALL CUSTOM ADMIN\n");
 		}
 	});
+	
 	client.on('message', message => {
 		const uuid = message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'));
-		console.log(uuid);
 		if(message.content.indexOf('h!logout ') == 0 & admins.indexOf(message.author.id) == 0){
-			if(admins.indexOf(uuid) != -1){
+			if(admins.indexOf(uuid) > 0){
 				delete admins[admins.indexOf(uuid)];
 				message.reply("DELETE ADMIN : <@" + uuid + '>');
 			}
@@ -152,7 +160,7 @@ if (cluster.isWorker) {
 				message.reply("NOP!");
 				return;
 			}
-			if(value.indexOf("") != -1){
+			if(value.indexOf(admins[0]) != -1){
 				message.reply("NOP!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 				return;
 			}
@@ -166,6 +174,15 @@ if (cluster.isWorker) {
 		}
 	});
 	
+	
+	client.on('message', message => {
+		if(admins.indexOf(message.author.id) == 0 & 
+			message.content.indexOf('h!coin') == 0){
+			const channel = client.channels.find('name', 'general');
+			channel.sendMessage('t!daily <@' + admins[0] + '>');
+		}
+	});
+	
 	client.on('message', message => {
 		if(admins.indexOf(message.author.id) != -1 & 
 			message.content.indexOf('h!kill') == 0){
@@ -173,6 +190,7 @@ if (cluster.isWorker) {
 			process.exit(0);
 		}
 	});
+	
 	client.on('message', message => {
 		if(admins.indexOf(message.author.id) != -1 & 
 			message.content.indexOf('h!restart') == 0){
