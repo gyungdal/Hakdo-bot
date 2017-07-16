@@ -63,25 +63,21 @@ if (cluster.isWorker) {
 		if(message.content.indexOf('h!weather') == 0){
 			const request = require('request');
 			let city = 'portland';
-			let url = 'http://api.openweathermap.org/data/2.5/' + 
-				'weather?q=' + message.content.split(' ')[1] + '&appid=' + weatherApiKey;
-
+			message.content = message.content.replace('  ', ' ');
+			let url = 'http://api.openweathermap.org/data/2.5/weather?q=' + message.content.split(' ')[1] + '&appid=' + weatherApiKey;
 			request(url, function (err, response, body) {
 				if(err){
 					console.log('error:', error);
 				} else {
 					console.log(body);
-					body = JSON.stringify(body);
-					const weather = body.weather;
-					const weatherMain = weather[0]['main'];
-					console.log(weather);
-					const weatherDesc = weather[0]['description'];
-					const temp = body.main.temp;
+					body = JSON.parse(body);
+					const weather = body.weather[0].description;
+					const temp = body.main.temp - 273.15;
 					const humi = body.main.humidity;
-					const temp_min = body.main.temp_min;
-					const temp_max = body.main.temp_max;
+					const temp_min = body.main.temp_min - 273.15;
+					const temp_max = body.main.temp_max - 273.15;
 					const wind_speed = body.wind.speed;
-					message.reply(`<Weather>\nWEATHER : ${weather}\nTEMP : ${temp}\nHUMI : ${humi}`);
+					message.reply(`<Warring!!! - BETA VERSION>\n\n<Weather>\nWEATHER : ${weather}\nTEMP : ${temp}\nHUMI : ${humi}`);
 					
 				}
 			});
@@ -96,7 +92,9 @@ if (cluster.isWorker) {
 			'```\n\n<일반 사용자용>```' +
 			'h!ssh -url <URL> -p <PORT> -user <USER> ' +
 			': SSH connect\nh!macro <Value> <Count> ' + 
-			': Sent the specified number of times\n```');
+			': Sent the specified number of times\n' +
+			'h!pid : View Hakdo bot pid!\n' +
+			'h!weather <city name in eng> : <BETA> get weather```');
 		}
 	});
 	
