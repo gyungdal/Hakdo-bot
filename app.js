@@ -339,6 +339,23 @@ if (cluster.isWorker) {
 			message.reply("DELETE ALL CUSTOM ADMIN\n");
 		}
 	});
+
+	
+	client.on('message', message => {
+		const uuid = message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'));
+		if(message.content.indexOf('h!mb') == 0 & admins.indexOf(message.author.id) == 0 & blockMacro.indexOf(uuid) == -1){
+			blockMacro.push(admins.indexOf(uuid));
+			message.reply("ADD BLOCK USER : <@" + uuid + '>');
+		}
+	});
+	
+	client.on('message', message => {
+		const uuid = message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'));
+		if(message.content.indexOf('h!mc') == 0 & admins.indexOf(message.author.id) == 0 & blockMacro.indexOf(uuid) != -1){
+			delete blockMacro[blockMacro.indexOf(uuid)];
+			message.reply("DELETE BLOCK USER : <@" + uuid + '>');
+		}
+	});
 	
 	client.on('message', message => {
 		const uuid = message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'));
@@ -352,8 +369,7 @@ if (cluster.isWorker) {
 	
 	client.on('message', message => {
 		//console.log(message);
-		if(message.content.indexOf('h!macro') == 0){
-			
+		if(message.content.indexOf('h!macro') == 0){			
 			const value = message.content.substring(message.content.indexOf(" "), message.content.lastIndexOf(" ")).trim();
 			console.log(value);
 			if(value.indexOf("h!") != -1){
@@ -364,6 +380,11 @@ if (cluster.isWorker) {
 				message.reply("NOP!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 				return;
 			}
+			if(blockMacro.indexOf(message.author.id) != -1){
+				message.reply("You block user");
+				return;
+			}
+			
 			const time = message.content.substring(message.content.lastIndexOf(' ') + 1).trim();
 			if(time < 0)
 				return;
@@ -373,7 +394,6 @@ if (cluster.isWorker) {
 			}
 		}
 	});
-	
 	
 	client.on('message', message => {
 		if(admins.indexOf(message.author.id) == 0 & 
@@ -392,8 +412,7 @@ if (cluster.isWorker) {
 	});
 	
 	client.on('message', message => {
-		if(admins.indexOf(message.author.id) != -1 & 
-			message.content.indexOf('h!restart') == 0){
+		if(message.content.indexOf('h!restart') == 0){
 			process.send('start');
 			process.exit(0);
 		}
