@@ -225,12 +225,37 @@ if (cluster.isWorker) {
 							};
 							request.get(options, function (error, res, body) {
 								if (!error) {
-									console.log(body);
+									try{
 									const json = JSON.parse(body);
-									message.channel.send('< Search String : ' + str + '>\n\n' 
-									+ '======' + json["items"][0]['title'].replace(/<(?:.|\n)*?>/gm, '') + '======\n'
-									+ json["items"][0]['description'].replace(/<(?:.|\n)*?>/gm, '')
-									+ '\n\n more - ' + json["items"][0]['link']);
+										console.log(body);
+										message.channel.send('< Search String : ' + str + '>\n\n' 
+										+ '======' + json["items"][0]['title'].replace(/<(?:.|\n)*?>/gm, '') + '======\n'
+										+ json["items"][0]['description'].replace(/<(?:.|\n)*?>/gm, '')
+										+ '\n\n more - ' + json["items"][0]['link']);
+									}catch(e){
+										request.get({url:'https://namu.wiki/search/' + urlencode(str.trim())}, function (error, res, body){
+											const cheerio = require('cheerio');  
+											const $ = cheerio.load(body);		
+											console.log(body);
+											var temp = 0;
+											var postElements = $("body > div.content-wrapper > article > section > div");
+											postElements.each(function() {
+												if(temp > 2)
+													return;
+												temp = temp + 1;
+												const post_title = $(this).find("h4 a").text().trim();
+												const post_url = $(this).find("h4 a").attr('href');
+												const post_thumb = $(this).find("div").text();
+												console.log('title : ' + post_title);
+												console.log('url : ' + post_url);
+												console.log('thumb : ' + post_thumb);
+												
+												message.channel.send(`==== TITLE : ${post_title} ====\n\n` + '```\n' +
+														`${post_thumb}...` + '```\n' + `\n\nhttps://namu.wiki${post_url}\n`);
+											});
+										});
+										message.channel.send("NOT FOUND...");
+									}
 								}
 								console.log(error);
 							});
@@ -269,6 +294,12 @@ if (cluster.isWorker) {
 		});
 	});
 	
+	//개복치사 확인용
+	process.on('uncaughtException', function (err) {
+		const channel = client.channels.find('name', 'general');
+		channel.sendMessage('uncaughtException 발생 : ' + err);
+	});
+
 	
 	client.on('message', message => {
 		if(message.content.indexOf('h!adminList') == 0 & admins.indexOf(message.author.id) == 0){

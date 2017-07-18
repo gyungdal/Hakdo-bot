@@ -1,0 +1,16 @@
+[33m[nodemon] 1.11.0[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching: *.*[39m
+[32m[nodemon] starting `node app.js`[39m
+MzM1MjI3NTQxNTQ5ODc1MjAx.DEp5Fg.dX8rx-mhpe3h9Q17qoEKHtqNe0w
+worker restart : 57737
+MzM1MjI3NTQxNTQ5ODc1MjAx.DEp5Fg.dX8rx-mhpe3h9Q17qoEKHtqNe0w
+[33m[nodemon] 1.11.0[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching: *.*[39m
+[32m[nodemon] starting `node app.js`[39m
+MzM1MjI3NTQxNTQ5ODc1MjAx.DEp5Fg.dX8rx-mhpe3h9Q17qoEKHtqNe0w
+worker restart : 58301
+MzM1MjI3NTQxNTQ5ODc1MjAx.DEp5Fg.dX8rx-mhpe3h9Q17qoEKHtqNe0w
+(node:58301) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 message listeners added. Use emitter.setMaxListeners() to increase limit
+I am ready!
