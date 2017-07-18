@@ -227,7 +227,10 @@ if (cluster.isWorker) {
 								if (!error) {
 									console.log(body);
 									const json = JSON.parse(body);
-									message.channel.send('<' + str + '>\n' + json["items"][0]['description'].replace(/<(?:.|\n)*?>/gm, ''));
+									message.channel.send('< Search String : ' + str + '>\n\n' 
+									+ '======' + json["items"][0]['title'].replace(/<(?:.|\n)*?>/gm, '') + '======\n'
+									+ json["items"][0]['description'].replace(/<(?:.|\n)*?>/gm, '')
+									+ '\n\n more - ' + json["items"][0]['link']);
 								}
 								console.log(error);
 							});
