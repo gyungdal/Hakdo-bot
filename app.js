@@ -107,13 +107,37 @@ if (cluster.isWorker) {
 		}
 	});
 	
-	
 	client.on('message', message => {
 		if(message.content.indexOf('h!rm') == 0 && message.content.indexOf('h!admin ') == 0){
 			const count = Number(message.content.substring(message.content.lastIndexOf(' ')));
 			message.channel.fetchMessages({limit: count}).then(messages => message.channel.bulkDelete(messages));
 		}
 	});	
+	
+	client.on('message', message => {
+		if(message.content.indexOf('h!지진') == 0){
+			const urlencode = require('urlencode');
+			const request = require('request');
+			const url = "http://m.kma.go.kr/m/risk/risk_03.jsp";
+			request(url, function(error, response, body) {
+				if (error) throw error;
+
+				const cheerio = require('cheerio');  
+				var $ = cheerio.load(body);
+
+				var postTitle = $("#div_0 > div > table > tbody > tr");
+				var sendData = '\n';
+				postTitle.each(function() {
+					var title = $(this).find("td:nth-child(1)").text().trim();
+					var desc = $(this).find("td:nth-child(2)").text().trim();
+					console.log("title : " + title);
+					console.log("desc : " + desc);
+					sendData = `${sendData}\n**${title}**\n${desc}`;
+				});
+				message.reply(sendData);
+			});
+		}			
+	});
 	
 	client.on('message', message => {
 		const uuid = message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'));
