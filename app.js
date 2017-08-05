@@ -107,6 +107,11 @@ if (cluster.isWorker) {
 		}
 	});
 	
+	
+	client.on('message', message => {
+		console.log(message.content);
+	});	
+	
 	client.on('message', message => {
 		if(message.content.indexOf('h!rm') == 0 && message.content.indexOf('h!admin ') == 0){
 			const count = Number(message.content.substring(message.content.lastIndexOf(' ')));
