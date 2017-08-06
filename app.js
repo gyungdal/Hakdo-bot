@@ -3,7 +3,6 @@ const fs = require('fs');
 const botToken = require('./token').token;
 const weatherApiKey = require('./token').weather;
 const apiaiKey = require('./token').apiai;
-console.log(botToken);
 
 if (cluster.isMaster) {
 	var worker = cluster.fork();
@@ -49,14 +48,14 @@ if (cluster.isWorker) {
 	const client = new Discord.Client();
 	const botId = require('./token').botId;
 	const uuidFunction = require('uuid-v4');
-	const express = require('express');
 	const mainduuid = uuidFunction();
 	var admins = [require('./token').adminId];
-	var exec = require('child_process').exec;
+	const exec = require('child_process').exec;
+	
 	process.on('message', function(message) {
 		client.on('ready', () => {	
 			console.log(message);
-			var channel = client.channels.find('name', 'general');
+			const channel = client.channels.find('name', 'general');
 			channel.sendMessage(message);
 		});
 	});	
@@ -91,8 +90,7 @@ if (cluster.isWorker) {
 	//		});
 	//	}
 	//});
-
-	
+		
 	client.on('message', message => {
 		//console.log(message);
 		if(message.content.indexOf('h!help') == 0){
@@ -107,10 +105,6 @@ if (cluster.isWorker) {
 		}
 	});
 	
-	
-	client.on('message', message => {
-		console.log(message.content);
-	});	
 	
 	client.on('message', message => {
 		if(message.content.indexOf('h!rm') == 0 && message.content.indexOf('h!admin ') == 0){
@@ -128,18 +122,23 @@ if (cluster.isWorker) {
 				if (error) throw error;
 
 				const cheerio = require('cheerio');  
-				var $ = cheerio.load(body);
+				const $ = cheerio.load(body);
 
-				var postTitle = $("#div_0 > div > table > tbody > tr");
-				var sendData = '\n';
+				const postTitle = $("#div_0 > div > table > tbody > tr");
+				var embed = new Discord.RichEmbed()
+					.setTitle("지진 정보")
+					.setColor(0x76FF03)
+					.setTimestamp()
+					.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
 				postTitle.each(function() {
-					var title = $(this).find("td:nth-child(1)").text().trim();
-					var desc = $(this).find("td:nth-child(2)").text().trim();
+					const title = $(this).find("td:nth-child(1)").text().trim();
+					const desc = $(this).find("td:nth-child(2)").text().trim();
 					console.log("title : " + title);
 					console.log("desc : " + desc);
-					sendData = `${sendData}\n**${title}**\n${desc}`;
+					embed.addField(title, desc)
 				});
-				message.reply(sendData);
+				message.channel.send({embed});
+					
 			});
 		}			
 	});
@@ -162,7 +161,7 @@ if (cluster.isWorker) {
 			const $ = cheerio.load(body);		
 			console.log(body);
 			var temp = 0;
-			var postElements = $("body > div.content-wrapper > article > section > div");
+			const postElements = $("body > div.content-wrapper > article > section > div");
 			postElements.each(function() {
 				if(temp > 2)
 					return;
@@ -173,11 +172,21 @@ if (cluster.isWorker) {
 				console.log('title : ' + post_title);
 				console.log('url : ' + post_url);
 				console.log('thumb : ' + post_thumb);
+				const embed = new Discord.RichEmbed()
+					.setTitle("Search result")
+					.setColor(0x76FF03)
+					.setTimestamp()
+					.setURL("https://namu.wiki" + post_url)
+					.addField("Title", post_title)
+					.addField("Thumb", post_thumb)
+					.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+				message.channel.send({embed});
 				
-				message.channel.send(`==== TITLE : ${post_title} ====\n\n` + '```\n' +
-						`${post_thumb}...` + '```\n' + `\n\nhttps://namu.wiki${post_url}\n`);
+				// message.channel.send(`==== TITLE : ${post_title} ====\n\n` + '```\n' +
+						// `${post_thumb}...` + '```\n' + `\n\nhttps://namu.wiki${post_url}\n`);
 			});
 		});
+		temp = undefined;
 	}
 	
 	client.on('message', message => {
@@ -196,7 +205,7 @@ if (cluster.isWorker) {
 				const request = require('request');   
 				const storyId = require('./token').mind;
 				const url = "http://mindmap.ai:8000/v1/" + storyId;
-				var inputJsonObjectDataInit = {
+				const inputJsonObjectDataInit = {
 					"story_id": storyId,
 					"context": {
 						"conversation_id": mainduuid,
@@ -225,7 +234,7 @@ if (cluster.isWorker) {
 				};
 				 
 				// request 보내기
-				var json = '';
+				const json = '';
 				request({
 						url: url,
 						method: 'POST',
@@ -240,7 +249,7 @@ if (cluster.isWorker) {
 						json = body;
 				 
 						// 받은 텍스트보기
-						var outputTextArray = json["output"]["visit_nodes_text"];
+						const outputTextArray = json["output"]["visit_nodes_text"];
 						console.log("outputTextArray: " + outputTextArray.toString());
 						for(var i=0 ; i < outputTextArray.length ; i++){
 							//실행된 모든 노드의 대답을 표시한다
@@ -251,9 +260,9 @@ if (cluster.isWorker) {
 						// ** 다시 보낼 payload 재가공하기
 						console.log("");
 						console.log("--------- 보낼 new_inputJsonObjectData 재가공 시작 ----------");
-						var new_inputtxt = str;  // 이부분만 재가공하여 처리하여 다시 메시지를 보내면 된다.
-						var new_context = json['context'];
-						var new_inputJsonObjectData = {
+						const new_inputtxt = str;  // 이부분만 재가공하여 처리하여 다시 메시지를 보내면 된다.
+						const new_context = json['context'];
+						const new_inputJsonObjectData = {
 							"story_id": storyId,
 							"context": new_context,
 							"input": {
@@ -265,7 +274,7 @@ if (cluster.isWorker) {
 						console.log("가공후 새롭게 보낼 new_inputtxt: " + new_inputtxt);
 						console.log("재가공된  'new_inputJsonObjectData' 이걸 다시 request를 만들어 보내면 된다. : " + JSON.stringify(new_inputJsonObjectData));
 						console.log("------------ 보낼 new_inputJsonObjectData 재가공하기 끝 ----------");
-						var json = '';
+						const json = '';
 						request({
 							url: url,
 							method: 'POST',
@@ -279,7 +288,7 @@ if (cluster.isWorker) {
 									const request = require('request');
 									const naver_client_id = require('./token').naver_client_id;
 									const naver_client_secret = require('./token').naver_client_secret;
-									var searchURI = ("https://openapi.naver.com/v1/search/encyc.json?query=" + urlencode(str.trim())).trim();
+									const searchURI = ("https://openapi.naver.com/v1/search/encyc.json?query=" + urlencode(str.trim())).trim();
 									console.log(searchURI);
 									const options = {
 										url: searchURI,
@@ -308,13 +317,18 @@ if (cluster.isWorker) {
 								}else{
 									console.log(body);
 									json = body;
-									var outputTextArray = json["output"]["visit_nodes_text"];
+									const outputTextArray = json["output"]["visit_nodes_text"];
 									console.log("outputTextArray: " + outputTextArray.toString());
 									for(var i=0 ; i < outputTextArray.length ; i++){
 										//실행된 모든 노드의 대답을 표시한다
 										console.log(outputTextArray[i]);
 									}
-									message.channel.send(json["output"]["text"][0]);
+									const embed = new Discord.RichEmbed()
+										.setColor(0x76FF03)
+										.setTimestamp()
+										.addField("Result", json["output"]["text"][0])
+										.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+									message.channel.send({embed});
 								
 										
 								}
@@ -343,7 +357,13 @@ if (cluster.isWorker) {
 	//개복치사 확인용
 	process.on('uncaughtException', function (err) {
 		const channel = client.channels.find('name', 'general');
-		channel.sendMessage('uncaughtException 발생 : ' + err);
+		const embed = new Discord.RichEmbed()
+			.setTitle("Exception")
+			.setColor(0xD50000)
+			.setTimestamp()
+			.addField("Info", err)
+			.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+		message.channel.send({embed});
 	});
 
 	
@@ -353,14 +373,21 @@ if (cluster.isWorker) {
 			admins.forEach(function(value){
 				temp = temp + "<@" + value + '> ';
 			});
-			message.reply('\n\n<ADMIN LIST>\n' + temp);
+			const embed = new Discord.RichEmbed()
+				.setTitle("ADMIN LIST")
+				.setColor(0x2979FF)
+				.setTimestamp()
+				.addField("List", temp)
+				.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+			message.channel.send({embed});
 		} 
+		temp = undefined;
 	});
 	
 	client.on('message', message => {
 		if(message.content.indexOf('h!pid') == 0){
 			console.log(process.pid);
-			message.reply("\nPID : " + process.pid);
+			message.channel.send("\nPID : " + process.pid);
 		} 
 	});
 	
@@ -372,7 +399,7 @@ if (cluster.isWorker) {
 					continue;
 				delete admins[i];
 			}
-			message.reply("DELETE ALL CUSTOM ADMIN\n");
+			message.channel.send("DELETE ALL CUSTOM ADMIN\n");
 		}
 	});
 	
@@ -381,7 +408,7 @@ if (cluster.isWorker) {
 		if(message.content.indexOf('h!logout ') == 0 & admins.indexOf(message.author.id) == 0){
 			if(admins.indexOf(uuid) > 0){
 				delete admins[admins.indexOf(uuid)];
-				message.reply("DELETE ADMIN : <@" + uuid + '>');
+				message.channel.send("DELETE ADMIN : <@" + uuid + '>');
 			}
 		}
 	});
@@ -393,31 +420,22 @@ if (cluster.isWorker) {
 			const value = message.content.substring(message.content.indexOf(" "), message.content.lastIndexOf(" ")).trim();
 			console.log(value);
 			if(value.indexOf("h!") != -1){
-				message.reply("NOP!");
+				message.channel.send("NOP!");
 				return;
 			}
 			if(value.indexOf(admins[0]) != -1){
-				message.reply("NOP!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+				message.channel.send("NOP!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 				return;
 			}
 			const time = message.content.substring(message.content.lastIndexOf(' ') + 1).trim();
 			if(time < 0)
 				return;
-			const channel = client.channels.find('name', 'general');
 			for(var i = 1;i<=time;i++){
-				channel.sendMessage(value);
+				message.channel.send(value);
 			}
 		}
 	});
 	
-	
-	client.on('message', message => {
-		if(admins.indexOf(message.author.id) == 0 & 
-			message.content.indexOf('h!coin') == 0){
-			const channel = client.channels.find('name', 'general');
-			channel.sendMessage('t!daily <@' + admins[0] + '>');
-		}
-	});
 	
 	client.on('message', message => {
 		if(admins.indexOf(message.author.id) != -1 & 
@@ -447,11 +465,23 @@ if (cluster.isWorker) {
 			});
 			exec("python '/Users/gyungdal/Hakdo bot/temp.py'", (error, stdout, stderr) =>{
 				if(error){
-					message.reply('<ERROR>\n' + error);
+					const embed = new Discord.RichEmbed()
+						.setTitle("Error")
+						.setColor(0xD50000)
+						.setTimestamp()
+						.addField("Description", error)
+						.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+					message.channel.send({embed});		
 					return;
 				}
-				console.log(stdout);
-				message.reply('<STDOUT>\n' + stdout);
+				console.log(stdout);				
+				const embed = new Discord.RichEmbed()
+					.setTitle("Success")
+					.setColor(0x76FF03)
+					.setTimestamp()
+					.addField("Output", stdout)
+					.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+				message.channel.send({embed});		
 			});
 			
 		}
@@ -464,19 +494,36 @@ if (cluster.isWorker) {
 			console.log(message.content.replace('h!exec', '').trim());
 			exec(message.content.replace('h!exec', '').trim(), (error, stdout, stderr) =>{
 				if(error){
-					message.reply('<ERROR>\n' + error);
+					const embed = new Discord.RichEmbed()
+						.setTitle("Error")
+						.setColor(0xD50000)
+						.setTimestamp()
+						.addField("Description", error)
+						.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+					message.channel.send({embed});	
 					return;
 				}
-				console.log(stdout);
-				message.reply('<STDOUT>\n' + stdout);
+				console.log(stdout);	
+				const embed = new Discord.RichEmbed()
+					.setTitle("Success")
+					.setColor(0x76FF03)
+					.setTimestamp()
+					.addField("Output", stdout)
+					.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+				message.channel.send({embed});	
 			});
 		}
 	});
 	
 	client.on('message', message => {
 		if(admins.indexOf(message.author.id) != -1 & 
-			message.content.indexOf('h!sshList') == 0){
-			message.reply(sshConnect);
+			message.content.indexOf('h!sshList') == 0){	
+			const embed = new Discord.RichEmbed()
+				.setColor(0x76FF03)
+				.setTimestamp()
+				.addField("Output", sshConnect)
+				.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+			message.channel.send({embed});	
 		}
 	});
 	
@@ -529,6 +576,7 @@ if (cluster.isWorker) {
 				});
 				sshConnect[message.author.id] = true;
 			}
+			url = user = port = before = undefined;
 		}
 		if(message.content.indexOf('!') == 0 & sshConnect[message.author.id] == true){
 			if(message.content.indexOf('!exit') == 0){
