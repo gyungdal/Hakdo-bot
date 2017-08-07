@@ -107,7 +107,7 @@ if (cluster.isWorker) {
 	
 	
 	client.on('message', message => {
-		if(message.content.indexOf('h!rm') == 0 & admins.indexOf(message.author.id) != -1){
+		if(message.content.indexOf('h!rm') == 0 && message.content.indexOf('h!admin ') == 0){
 			const count = Number(message.content.substring(message.content.lastIndexOf(' ')));
 			message.channel.fetchMessages({limit: count}).then(messages => message.channel.bulkDelete(messages));
 		}
@@ -172,8 +172,6 @@ if (cluster.isWorker) {
 				console.log('title : ' + post_title);
 				console.log('url : ' + post_url);
 				console.log('thumb : ' + post_thumb);
-				if(post_title == '' | post_url == '' | post_thumb == '')
-					return;
 				const embed = new Discord.RichEmbed()
 					.setTitle("Search result")
 					.setColor(0x76FF03)
@@ -307,10 +305,11 @@ if (cluster.isWorker) {
 												console.log(body);
 
 	                                                	                        const embed = new Discord.RichEmbed()
-												.setTitle(`Search <${json['items'][0]['title'].replace(/<(?:.|\n)*?>/gm, '')}>`)
+												.setTitle(`Search <${json['items'][0]['title']}>`)
 												.setURL(json['items'][0]['link'])
         	                                                	                        .setColor(0xd50000)
                	        	                                        	                .setTimestamp()
+												.addField("Title", json["items"][0]['title'].replace(/<(?:.|\n)*?>/gm, ''))
                	 	                                                        	        .addField("Description", json["items"][0]['description'].replace(/<(?:.|\n)*?>/gm, ''))
                                 	                                               		.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
                                         		                                message.channel.send({embed});
