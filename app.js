@@ -6,25 +6,22 @@ const apiaiKey = require('./token').apiai;
 
 if (cluster.isMaster) {
 	var worker = cluster.fork();
-	
+	worker.send(botToken);
 	String.prototype.replaceAll = function(target, replacement) {
 		return this.split(target).join(replacement);
 	};
 	
 	worker.on('message', function (message) {
 		if(message == 'start'){
+			worker.kill();
 			worker = cluster.fork();
-			worker.send('Restart finish!');
-			for (var i in cluster.workers) {
-				if (i == 0)
-					continue;
-				cluster.workers[i].kill();
-			}
+			worker.send(botToken);
 		}else if(message == 'kill'){
-			for (var i in cluster.workers) {
-				cluster.workers[i].kill();
-			}
+			worker.kill();
 			process.exit(0);
+		}else if(message.type == "token"){
+			var work = cluster.fork();
+			work.send(message.token);
 		}
 	});
 	
@@ -37,6 +34,7 @@ if (cluster.isMaster) {
 		console.log('worker is dead : ' + worker.process.pid);
 		if(code != 0){
 			worker = cluster.fork();
+			worker.send(botToken);
 			worker.send('Worker is dead, auto restart start');
 		}
 	});
@@ -47,52 +45,31 @@ if (cluster.isWorker) {
 	const Discord = require('discord.js');
 	const client = new Discord.Client();
 	const botId = require('./token').botId;
+	
+	process.on('message', function(message) {			
+		client.login(message);
+
+		// client.on('ready', () => {	
+			// console.log(message);
+			// const channel = client.channels.find('name', 'general');
+			// channel.sendMessage(message);
+		// });
+	});	
+	
+
+	client.on('ready', () => {
+		console.log('I am ready!');
+		if(client.user.bot){
+			console.log("I'm bot");
+			if(client.user.id == botId){
+				console.log("My name is Hakdo bot");
+				
 	const uuidFunction = require('uuid-v4');
 	const mainduuid = uuidFunction();
 	var admins = [require('./token').adminId];
 	const exec = require('child_process').exec;
 	
-	process.on('message', function(message) {
-		client.on('ready', () => {	
-			console.log(message);
-			const channel = client.channels.find('name', 'general');
-			channel.sendMessage(message);
-		});
-	});	
-	
-	client.login(botToken);
-
-	client.on('ready', () => {
-		console.log('I am ready!');
-	});
-	
-	//client.on('message', message => {
-	//	if(message.content.indexOf('h!weather') == 0){
-	//		const request = require('request');
-	//		let city = 'portland';
-	//		message.content = message.content.replace('  ', ' ');
-	//		let url = 'http://api.openweathermap.org/data/2.5/weather?q=' + message.content.split(' ')[1] + '&appid=' + weatherApiKey;
-	//		request(url, function (err, response, body) {
-	//			if(err){
-	//				console.log('error:', error);
-	//			} else {
-	//				console.log(body);
-	//				body = JSON.parse(body);
-	//				const weather = body.weather[0].description;
-	//				const temp = body.main.temp - 273.15;
-	//				const humi = body.main.humidity;
-	//				const temp_min = body.main.temp_min - 273.15;
-	//				const temp_max = body.main.temp_max - 273.15;
-	//				const wind_speed = body.wind.speed;
-	//				message.reply(`<Warring!!! - BETA VERSION>\n\n<Weather>\nWEATHER : ${weather}\nTEMP : ${temp}\nHUMI : ${humi}`);
-	//				
-	//			}
-	//		});
-	//	}
-	//});
-		
 	client.on('message', message => {
-		//console.log(message);
 		if(message.content.indexOf('h!help') == 0){
 			message.reply('<관리자 전용>\n```\nh!exec <COMMAND> : Command Run\nh!kill : Suicide\nh!restart : Restart Hakdo bot\n' +
 			'h!python <Code> : Python Execute\n' +
@@ -105,6 +82,17 @@ if (cluster.isWorker) {
 		}
 	});
 	
+	
+	client.on('message', message => {
+		if(message.content.indexOf('h!login') == 0){
+			const token = message.content.substring(message.content.lastIndexOf(' ')).trim();
+			var json = JSON.parse("{}");
+			json["type"] = "token";
+			json["token"] = token;
+			process.send({type:"token", token:token});
+			json = undefined;
+		}
+	});
 	
 	client.on('message', message => {
 		if(message.content.indexOf('h!rm') == 0 & admins.indexOf(message.author.id) != -1){
@@ -123,11 +111,12 @@ if (cluster.isWorker) {
 
 				const cheerio = require('cheerio');  
 				const $ = cheerio.load(body);
-
+				
 				const postTitle = $("#div_0 > div > table > tbody > tr");
 				var embed = new Discord.RichEmbed()
 					.setTitle("지진 정보")
 					.setColor(0x76FF03)
+					.setThumbnail("http://m.kma.go.kr" + $("#div_0 > p > a > img").attr("src"))
 					.setTimestamp()
 					.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
 				postTitle.each(function() {
@@ -596,5 +585,30 @@ if (cluster.isWorker) {
 			}
 		}
 	});
+			}
+		}else{
+			console.log("I'm user!");	
+			
+			var interval;
+			client.on('message', message => {
+				if(message.content.indexOf('h!parming') == 0 & message.author.id == client.user.id){
+						message.channel.send('t!daily');
+						//message.channel.send('t!rep <@243755957333524480>');
+					interval = setInterval(() => {
+						message.channel.send('t!daily');
+						//message.channel.send('t!rep <@243755957333524480>');
+					}, (1000 * 3600 * 24) + 1000);
+				}
+			});
+			
+			client.on('message', message => {
+				if(message.content.indexOf('h!stop') == 0 & message.author.id == client.user.id){
+					clearInterval(interval);
+				}
+			});
+		}
+	});
+	
+
 
 }
