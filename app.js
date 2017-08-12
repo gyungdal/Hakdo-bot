@@ -23,6 +23,7 @@ if (cluster.isMaster) {
 			var work = cluster.fork();
 			work.send(message.token);
 		}
+		message = null;
 	});
 	
 	
@@ -48,7 +49,7 @@ if (cluster.isWorker) {
 	
 	process.on('message', function(message) {			
 		client.login(message);
-
+		message = null;
 		// client.on('ready', () => {	
 			// console.log(message);
 			// const channel = client.channels.find('name', 'general');
@@ -69,6 +70,12 @@ if (cluster.isWorker) {
 	var admins = [require('./token').adminId];
 	const exec = require('child_process').exec;
 	
+	
+	client.on('message', message => {
+		if(message.content.indexOf('h!help') == 0){
+			
+		}
+	});
 	client.on('message', message => {
 		if(message.content.indexOf('h!help') == 0){
 			message.reply('<관리자 전용>\n```\nh!exec <COMMAND> : Command Run\nh!kill : Suicide\nh!restart : Restart Hakdo bot\n' +
@@ -86,12 +93,9 @@ if (cluster.isWorker) {
 	client.on('message', message => {
 		if(message.content.indexOf('h!login') == 0){
 			const token = message.content.substring(message.content.lastIndexOf(' ')).trim();
-			var json = JSON.parse("{}");
-			json["type"] = "token";
-			json["token"] = token;
 			process.send({type:"token", token:token});
-			json = undefined;
 		}
+		message = null;
 	});
 	
 	client.on('message', message => {
@@ -455,11 +459,11 @@ if (cluster.isWorker) {
 		message.content.indexOf('h!python') == 0){
 			const command = message.content.replace('h!python', '').trim();
 			console.log(command);
-			fs.writeFile('/Users/gyungdal/Hakdo bot/temp.py', command, function(err) {
+			fs.writeFile('./temp.py', command, function(err) {
 				if(err) throw err;
 				console.log('File write completed');
 			});
-			exec("python '/Users/gyungdal/Hakdo bot/temp.py'", (error, stdout, stderr) =>{
+			exec("python './temp.py'", (error, stdout, stderr) =>{
 				if(error){
 					const embed = new Discord.RichEmbed()
 						.setTitle("Error")
@@ -564,46 +568,121 @@ if (cluster.isWorker) {
 				if(typeof port == 'undefined'){
 					port = 22;
 				}
-				const pty = require("pty.js");
-				seq[message.author.id] = pty.spawn("ssh", [user + "@" + url, "-p", port]);
-
-				seq[message.author.id].on("data", function(data) {
-					message.reply(data);
+				const spawn = require("child_process").spawn;
+				seq[message.author.id] = spawn("ssh", [user + "@" + url, "-p", port, "-t", "-t"], {stdio:['pipe','pipe','pipe']});
+				seq[message.author.id].stdin.write('\r\n');
+				seq[message.author.id].stderr.on("data", function(data) {	
+					console.log(data);
+					const embed = new Discord.RichEmbed()
+						.setTitle("Error")
+						.setColor(0xD50000)
+						.setTimestamp()
+						.addField("Description", data)
+						.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+					message.channel.send({embed});	
+					return;
 				});
-				sshConnect[message.author.id] = true;
-			}
-			url = user = port = before = undefined;
+				seq[message.author.id].stdout.on("data", function(data) {
+					console.log(data);
+					const embed = new Discord.RichEmbed()
+						.setTitle("Success")
+						.setColor(0x76FF03)
+						.setTimestamp()
+						.addField("Output", data)
+						.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+					});
+					sshConnect[message.author.id] = true;
+				}
+			url = user = port = before = null;
 		}
 		if(message.content.indexOf('!') == 0 & sshConnect[message.author.id] == true){
 			if(message.content.indexOf('!exit') == 0){
-				seq[message.author.id].write('exit\r\n');
+				seq[message.author.id].stdin.write('exit\r\n');
+				seq[message.author.id].stdin.end();
 				delete sshConnect[message.author.id];
 				message.reply("ssh close");
 				delete seq[message.author.id];
 			}else{
-				seq[message.author.id].write(message.content.substring(1) + '\r\n');
+				seq[message.author.id].stdin.write(message.content.substring(1) + '\r\n');
 			}
 		}
 	});
 			}
 		}else{
 			console.log("I'm user!");	
-			
+			var rep = '';
 			var interval;
+			var autoLevelup = false, interval, before;
+			
 			client.on('message', message => {
-				if(message.content.indexOf('h!parming') == 0 & message.author.id == client.user.id){
-						message.channel.send('t!daily');
-						//message.channel.send('t!rep <@243755957333524480>');
-					interval = setInterval(() => {
-						message.channel.send('t!daily');
-						//message.channel.send('t!rep <@243755957333524480>');
-					}, (1000 * 3600 * 24) + 1000);
+				if(message.author.id == client.user.id){
+					const uuid = require('uuid-v4');
+					if(!uuid.isUUID(message.content)){
+						before = message.createdTimestamp; 
+						console.log("현재 TIMESTAMP : " + before);
+					}
+					var a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
+					switch(message.content.substring(message.content.indexOf('!') + 1, a)){
+						case "parming" :{
+								message.channel.send('t!daily');
+								if(rep != '')
+									message.channel.send('t!rep ' + rep);
+								interval = setInterval(() => {
+									message.channel.send('t!daily');
+									if(rep != '')
+										message.channel.send('t!rep ' + rep);
+								}, (1000 * 3600 * 24) + 1000);						
+						}
+						case "stop":{
+							clearInterval(interval);
+							message.channel.send("stop parming");
+						}
+						case "enable" :{
+							console.log("레벨업 활성화!");
+							autoLevelup = true;
+							interval = setInterval(function(){
+								console.log("현재 시간 : " + (new Date().getTime()));
+								if((before + (10 * 1000)) < (new Date().getTime())){	
+								
+									console.log("10초 지남!, 레벨업 시작!");
+									if(autoLevelup){
+										const uuid = require('uuid-v4');
+										message.channel.send(uuid());
+									}
+								}
+							}, 1200);
+							break;
+						}
+						case "disable" : {
+							console.log("레벨업 비활성화...");
+							autoLevelup = false;
+							clearInterval(interval);
+							message.channel.send("Level up Done");
+							break;
+						}
+						default : break;
+					}
 				}
 			});
-			
+				
 			client.on('message', message => {
-				if(message.content.indexOf('h!stop') == 0 & message.author.id == client.user.id){
-					clearInterval(interval);
+				if(message.author.id == client.user.id){
+					
+					var a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
+					switch(message.content.substring(message.content.indexOf('!') + 1, a)){
+						case 'setRep' : {
+							rep = message.content.substring(message.content.indexOf(' <'), message.content.indexOf('>') + 1).trim();
+							message.channel.send("rep : " + rep);
+							console.log("req : " + rep);	
+							break;
+						}
+						case 'clearRep' : {								
+							rep = '';
+							console.log("repClear");
+							message.channel.send("repClear");
+						}
+						default : break;
+					}
 				}
 			});
 		}
