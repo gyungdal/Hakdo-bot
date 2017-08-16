@@ -611,43 +611,45 @@ if (cluster.isWorker) {
 		}else{
 			console.log("I'm user!");	
 			var rep = '';
-			var interval;
-			var autoLevelup = false, interval, before;
+			var pinterval;
+			var autoLevelup = false, cinterval, before, cChannel;
 			
 			client.on('message', message => {
 				if(message.author.id == client.user.id){
-					const uuid = require('uuid-v4');
-					if(!uuid.isUUID(message.content)){
+					if(message.channel.id != cChannel){
 						before = message.createdTimestamp; 
 						console.log("현재 TIMESTAMP : " + before);
 					}
-					var a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
+					console.log(message.channel.id);
+					const a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
 					switch(message.content.substring(message.content.indexOf('!') + 1, a)){
 						case "parming" :{
 								message.channel.send('t!daily');
 								if(rep != '')
 									message.channel.send('t!rep ' + rep);
-								interval = setInterval(() => {
+								pinterval = setInterval(function(){
 									message.channel.send('t!daily');
 									if(rep != '')
 										message.channel.send('t!rep ' + rep);
-								}, (1000 * 3600 * 24) + 1000);						
+								}, (1000 * 3600 * 24) + 1000);				
+								break;		
 						}
 						case "stop":{
-							clearInterval(interval);
+							clearInterval(pinterval);
 							message.channel.send("stop parming");
+							break;
 						}
 						case "enable" :{
 							console.log("레벨업 활성화!");
 							autoLevelup = true;
-							interval = setInterval(function(){
+							cChannel = message.channel;
+							cinterval = setInterval(function(){
 								console.log("현재 시간 : " + (new Date().getTime()));
 								if((before + (10 * 1000)) < (new Date().getTime())){	
-								
 									console.log("10초 지남!, 레벨업 시작!");
 									if(autoLevelup){
-										const uuid = require('uuid-v4');
-										message.channel.send(uuid());
+										const casual = require('casual');
+										cChannel.send(casual.text);
 									}
 								}
 							}, 1200);
@@ -656,8 +658,13 @@ if (cluster.isWorker) {
 						case "disable" : {
 							console.log("레벨업 비활성화...");
 							autoLevelup = false;
-							clearInterval(interval);
+							cChannel = null;
+							clearInterval(cinterval);
 							message.channel.send("Level up Done");
+							break;
+						}
+						case "status" :{
+							message.channel.send("I'm Alive!");
 							break;
 						}
 						default : break;
