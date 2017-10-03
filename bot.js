@@ -3,12 +3,18 @@
 	const apiaiKey = require('./token').apiai;
 	const uuidFunction = require('uuid-v4');
 	const mainduuid = uuidFunction();
-	var admins = [require('./token').adminId];
 	const exec = require('child_process').exec;
-
+	const opus = require('node-opus');
+	const YTDL = require('ytdl-core');	
+	var admins = [require('./token').adminId];
+	var musicQueue = [];
+	var musicPlayerQueue = [];
+	var musicPlayerConnectionQueue = [];
+	var musicNextSong = [];
+	
 	client.on('message', message => {
 		const a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
-		switch(message.content.substring(message.content.indexOf('!') + 1, a)){
+		switch(message.content.substring(message.content.indexOf('h!') + 2, a)){
 			case "help" : {
 				message.reply('<관리자 전용>\n```\nh!exec <COMMAND> : Command Run\nh!kill : Suicide\nh!restart : Restart Hakdo bot\n' +
 				'h!python <Code> : Python Execute\n' +
@@ -78,12 +84,136 @@
 				}
 				break;
 			}
+			case "np":{
+				if(musicQueue[message.member.voiceChannel] != null){
+					var embed = new Discord.RichEmbed()
+						.setTitle("Now Play List")
+						.setColor(0x76FF03)
+						.setTimestamp()
+						.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+					var count = 1;
+					for(var item in musicQueue[message.member.voiceChannel]){
+						embed.addField(count, musicQueue[message.member.voiceChannel][item]);
+						count = count + 1;
+					}
+					if(musicQueue[message.member.voiceChannel].length >= 1){
+						if(musicQueue[message.member.voiceChannel][0].indexOf('youtube') != -1){
+							const youtube = musicQueue[message.member.voiceChannel][0];
+							const first = youtube.substring(youtube.indexOf('v=') + 2);
+							const finalURL = first.substring(0, first.includes('&') ? first.indexOf('&') : first.length);
+							const imageURL = 'https://i.ytimg.com/vi/' +  finalURL + '/hqdefault.jpg';
+							embed.setImage(imageURL);
+						}
+					}
+					message.channel.send({embed});
+					embed = count = null;
+				}
+				break;
+			}
+			case "resume":{
+				if(musicPlayerQueue[message.member.voiceChannel] != null){
+					musicPlayerQueue[message.member.voiceChannel].resume();
+					}
+				break;
+			}
+			case "pause":{
+				if(musicPlayerQueue[message.member.voiceChannel] != null){
+					musicPlayerQueue[message.member.voiceChannel].pause();
+					}
+				break;
+			}
+			case "ns":{
+				if(musicPlayerQueue[message.member.voiceChannel] != null){
+					if(musicQueue[message.member.voiceChannel].length > 1){
+						//musicPlayer(musicPlayerConnectionQueue[message.member.voiceChannel], message.member.voiceChannel);
+						musicPlayerQueue[message.member.voiceChannel].end({'reason':'nextSong'});
+					}
+				}
+				break;
+			}
+			
+			case "volume":{
+				const size = Number(message.content.substring(message.content.trim().lastIndexOf(' ')).trim());
+				if(!isNaN(size)){
+					if(size <= 1 && size > 0){
+						musicPlayerQueue[message.member.voiceChannel].setVolume(size);
+						message.reply("Volume : " + size);
+					}
+				}
+				break;
+			}
+			
+			case "play":{
+				if (message.member.voiceChannel) {
+					message.member.voiceChannel.join()
+						.then(connection => {
+							musicPlayerConnectionQueue[message.member.voiceChannel] = connection;
+							const url = message.content.substring(message.content.lastIndexOf(' ')).trim();
+							try{
+								const audio_stream = YTDL(url);
+								if(musicQueue[message.member.voiceChannel] == null ||
+									musicQueue[message.member.voiceChannel].length == 0){
+									musicQueue[message.member.voiceChannel] = []; 
+									musicQueue[message.member.voiceChannel].push(url);
+									musicPlayerConnectionQueue[message.member.voiceChannel] = connection;
+									musicPlayer(message.member.voiceChannel);
+								}else{
+									musicQueue[message.member.voiceChannel].push(url);
+								}
+							}catch(e){
+								console.log(e);
+							}
+						}).catch(console.log);
+				} else {
+					musicPlayerConnectionQueue[message.member.voiceChannel] = null;
+					message.reply('You need to join a voice channel first!');
+				}
+				break;
+			}
+			case "out":{
+				musicQueue[message.member.voiceChannel] = [];
+				message.member.voiceChannel.leave();
+				if(musicPlayerConnectionQueue[message.member.voiceChannel] != null){
+					musicPlayerConnectionQueue[message.member.voiceChannel].disconnect();
+					musicPlayerConnectionQueue[message.member.voiceChannel] = null;
+				}
+				break;
+			}
 		}
 	});
-
+	
+	function musicPlayer(voiceChannel){	
+		console.log(musicQueue[voiceChannel][0]);
+		const audio_stream = YTDL(musicQueue[voiceChannel][0]);
+		if(audio_stream != null){
+			musicPlayerQueue[voiceChannel] = musicPlayerConnectionQueue[voiceChannel].playStream(audio_stream, {volume : 0.01});
+			
+			musicPlayerQueue[voiceChannel].once("start", () =>{
+				console.log("Music Start");
+			});
+			
+			musicPlayerQueue[voiceChannel].once("end", () => {
+				if(musicNextSong[voiceChannel] != true){
+					musicNextSong[voiceChannel] = true;
+					setTimeout(()=>{
+						musicNextSong[voiceChannel] = null;
+					}, 100);
+					console.log(musicQueue[voiceChannel].length);
+					musicQueue[voiceChannel].shift();
+					if(musicQueue[voiceChannel].length >= 1){
+						console.log('new start');
+						musicPlayer(voiceChannel);
+					}else{
+						musicPlayerQueue[voiceChannel] = null;
+					}
+				}
+			});
+		}
+	}
+	
 	client.on('message', message => {
 		if(message.content.indexOf('h!rm') == 0 & admins.indexOf(message.author.id) != -1){
-			const count = Number(message.content.substring(message.content.lastIndexOf(' ')));
+			const count = Number(message.content.substring(message.content.lastIndexOf(' ')));	
 			message.channel.fetchMessages({limit: count}).then(messages => message.channel.bulkDelete(messages));
 		}
 	});	
@@ -309,7 +439,7 @@
 	client.on('message', message => {
 		if(admins.indexOf(message.author.id) == 0){
 			const a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
-			switch(message.content.substring(message.content.indexOf('!') + 1, a)){
+			switch(message.content.substring(message.content.indexOf('h!') + 2, a)){
 				case "adminList" :{
 					var temp = "";
 					admins.forEach(function(value){
@@ -350,7 +480,7 @@
 	client.on('message', message => {
 		if(admins.indexOf(message.author.id) != -1){
 			const a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
-			switch(message.content.substring(message.content.indexOf('!') + 1, a)){
+			switch(message.content.substring(message.content.indexOf('h!') + 2, a)){
 				case "realloc" :{
 					process.send('realloc');
 					break;
