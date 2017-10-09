@@ -133,10 +133,10 @@
 			}
 			
 			case "volume":{
-				const size = Number(message.content.substring(message.content.trim().lastIndexOf(' ')).trim());
+				const size = Number(message.content.substring(message.content.trim().indexOf(' ')).trim());
 				if(!isNaN(size)){
-					if(size <= 1 && size > 0){
-						musicPlayerQueue[message.member.voiceChannel].setVolume(size);
+					if(size <= 100 && size > 0){
+						musicPlayerQueue[message.member.voiceChannel].setVolume((size / 100));
 						message.reply("Volume : " + size);
 					}
 				}
@@ -202,7 +202,9 @@
 					musicQueue[voiceChannel].shift();
 					if(musicQueue[voiceChannel].length >= 1){
 						console.log('new start');
-						musicPlayer(voiceChannel);
+						setTimeout(()=>{
+							musicPlayer(voiceChannel);
+						}, 100);
 					}else{
 						musicPlayerQueue[voiceChannel] = null;
 					}
