@@ -6,6 +6,7 @@
 	const exec = require('child_process').exec;
 	const opus = require('node-opus');
 	const YTDL = require('ytdl-core');	
+	
 	var admins = [require('./token').adminId];
 	var musicQueue = [];
 	var musicPlayerQueue = [];
@@ -13,8 +14,62 @@
 	var musicNextSong = [];
 	
 	client.on('message', message => {
+		if(message.content.indexOf('h!') != 0)
+			return;
 		const a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
 		switch(message.content.substring(message.content.indexOf('h!') + 2, a)){
+			case "talk" : {
+				try{
+					const uuid = (message.content.includes('<@') && message.content.includes('>')) ? (message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'))) : null;
+					const talk = message.content.substring(message.content.indexOf(' ') + 1 , ((message.content.includes('<@') && message.content.includes('>')) ? message.content.lastIndexOf(' ') + 1 : message.content.length ));
+					const request = require("request");
+					const urlencode = require('urlencode');
+					const audioURL = 'http://www.neospeech.com/service/demo?voiceId=6&content=' + urlencode(talk);
+					console.log(audioURL);
+					request(audioURL, function (error, response, body) {
+						console.log(String.valueOf(error));
+						console.log("==========BODY============");
+						console.log(body);
+						body = JSON.parse(body);
+						if(body["result"] == "successful"){	
+							console.log("SUCCESS");
+							//const url = "http://www.neospeech.com" + body["audioUrl"];
+							const url = body["audioUrl"].substring(body["audioUrl"].lastIndexOf("http"));
+							console.log(body["audioUrl"]);
+							console.log(url);
+							var embed = new Discord.RichEmbed()
+									.addField("TALK", talk);
+							if (uuid != null)
+								embed.addField("UUID", "<@" + uuid + ">");
+							message.channel.send({embed});							
+							if (message.member.voiceChannel) {
+								console.log("inner");
+								message.member.voiceChannel.join()
+									.then(connection => {
+										console.log("TTS");
+										console.log(url);
+										connection.playArbitraryInput(url);
+									}).catch(console.log);
+							} else {
+								musicPlayerConnectionQueue[message.member.voiceChannel] = null;
+								message.reply('You need to join a voice channel first!');
+							}
+						}else{
+							const embed = new Discord.RichEmbed()
+								.setColor(0xff00000)
+								.setTitle("ERROR")
+								.addField("TTS", "ERROR...");
+							message.channel.send({mebed});
+							return;
+						}
+						console.log('body:', body);
+					});
+					
+				}catch(exception){
+					console.log(exception);
+				}
+				break;
+			}
 			case "help" : {
 				message.reply('<관리자 전용>\n```\nh!exec <COMMAND> : Command Run\nh!kill : Suicide\nh!restart : Restart Hakdo bot\n' +
 				'h!python <Code> : Python Execute\n' +
@@ -132,7 +187,8 @@
 				break;
 			}
 			
-			case "volume":{
+			case "volume":
+			case "vol":{
 				const size = Number(message.content.substring(message.content.trim().indexOf(' ')).trim());
 				if(!isNaN(size)){
 					if(size <= 100 && size > 0){
