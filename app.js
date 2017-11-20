@@ -93,7 +93,7 @@ if (cluster.isMaster) {
 if (cluster.isWorker) {
 	const Discord = require('discord.js');
 	const client = new Discord.Client();
-	
+	var token = null;
 	String.prototype.replaceAll = function(target, replacement) {
 		return this.split(target).join(replacement);
 	};
@@ -102,6 +102,7 @@ if (cluster.isWorker) {
 		switch(message.type){
 			case "login" :{
 				console.log("login!");
+				token = message.token;
 				client.login(message.token);
 				break;
 			}

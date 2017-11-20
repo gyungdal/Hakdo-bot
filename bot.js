@@ -21,49 +21,38 @@
 			case "talk" : {
 				try{
 					const uuid = (message.content.includes('<@') && message.content.includes('>')) ? (message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'))) : null;
-					const talk = message.content.substring(message.content.indexOf(' ') + 1 , ((message.content.includes('<@') && message.content.includes('>')) ? message.content.lastIndexOf(' ') + 1 : message.content.length ));
-					const request = require("request");
-					const urlencode = require('urlencode');
-					const audioURL = 'http://www.neospeech.com/service/demo?voiceId=6&content=' + urlencode(talk);
-					console.log(audioURL);
-					request(audioURL, function (error, response, body) {
-						console.log(String.valueOf(error));
-						console.log("==========BODY============");
-						console.log(body);
-						body = JSON.parse(body);
-						if(body["result"] == "successful"){	
-							console.log("SUCCESS");
-							//const url = "http://www.neospeech.com" + body["audioUrl"];
-							const url = body["audioUrl"].substring(body["audioUrl"].lastIndexOf("http"));
-							console.log(body["audioUrl"]);
-							console.log(url);
-							var embed = new Discord.RichEmbed()
-									.addField("TALK", talk);
-							if (uuid != null)
-								embed.addField("UUID", "<@" + uuid + ">");
-							message.channel.send({embed});							
-							if (message.member.voiceChannel) {
-								console.log("inner");
-								message.member.voiceChannel.join()
-									.then(connection => {
-										console.log("TTS");
-										console.log(url);
-										connection.playArbitraryInput(url);
-									}).catch(console.log);
-							} else {
-								musicPlayerConnectionQueue[message.member.voiceChannel] = null;
-								message.reply('You need to join a voice channel first!');
-							}
-						}else{
+					const talk = (message.content.substring(message.content.indexOf(' ') + 1 , 
+							((message.content.includes('<@') && message.content.includes('>')) ? message.content.lastIndexOf(' ') + 1 : message.content.length ))).replaceAll('"', "'");
+					
+					exec('say "' + talk + '" -o temp.aac', (error, stdout, stderr) =>{
+						if(error){
 							const embed = new Discord.RichEmbed()
-								.setColor(0xff00000)
-								.setTitle("ERROR")
-								.addField("TTS", "ERROR...");
-							message.channel.send({mebed});
+								.setTitle("Error")
+								.setColor(0xD50000)
+								.setTimestamp()
+								.addField("Description", error)
+								.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+							message.channel.send({embed});		
 							return;
 						}
-						console.log('body:', body);
+						var embed = new Discord.RichEmbed()
+								.addField("TALK", talk);
+						if (uuid != null)
+							embed.addField("UUID", "<@" + uuid + ">");
+						message.channel.send({embed});							
+						if (message.member.voiceChannel) {
+							console.log("inner");
+							message.member.voiceChannel.join()
+								.then(connection => {
+									console.log("TTS");
+									connection.playFile("temp.aac");
+								}).catch(console.log);
+						} else {
+							musicPlayerConnectionQueue[message.member.voiceChannel] = null;
+							message.reply('You need to join a voice channel first!');
+						}
 					});
+					
 					
 				}catch(exception){
 					console.log(exception);
@@ -525,7 +514,6 @@
 				}
 				case "logout" :{
 					const uuid = message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'));
-					admins[admins.indexOf(uuid)] = null;
 					delete admins[admins.indexOf(uuid)];
 					message.channel.send("DELETE ADMIN : <@" + uuid + '>');
 					break;
@@ -536,7 +524,7 @@
 
 
 	client.on('message', message => {
-		if(admins.indexOf(message.author.id) != -1){
+		if(admins.indexOf(message.author.id) != -1 && message.content.includes('h!')){
 			const a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
 			switch(message.content.substring(message.content.indexOf('h!') + 2, a)){
 				case "realloc" :{
@@ -545,6 +533,10 @@
 				}
 				case "kill" : {
 					process.send('kill');
+					break;
+				}
+				case "restart":{
+					process.send('restart');
 					break;
 				}
 				case "python" : {
