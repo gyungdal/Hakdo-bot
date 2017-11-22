@@ -23,7 +23,7 @@
 					const uuid = (message.content.includes('<@') && message.content.includes('>')) ? (message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'))) : null;
 					const talk = (message.content.substring(message.content.indexOf(' ') + 1 , 
 							((message.content.includes('<@') && message.content.includes('>')) ? message.content.lastIndexOf(' ') + 1 : message.content.length ))).replaceAll('"', "'");
-					
+					message.delete();
 					exec('say "' + talk + '" -o temp.aac', (error, stdout, stderr) =>{
 						if(error){
 							const embed = new Discord.RichEmbed()
@@ -32,14 +32,15 @@
 								.setTimestamp()
 								.addField("Description", error)
 								.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
-							message.channel.send({embed});		
+							message.channel.send({embed}).then(message => message.delete(10000));		
+							
 							return;
 						}
 						var embed = new Discord.RichEmbed()
 								.addField("TALK", talk);
 						if (uuid != null)
 							embed.addField("UUID", "<@" + uuid + ">");
-						message.channel.send({embed});							
+						message.channel.send({embed}).then(message => message.delete(10000));							
 						if (message.member.voiceChannel) {
 							console.log("inner");
 							message.member.voiceChannel.join()
@@ -49,7 +50,7 @@
 								}).catch(console.log);
 						} else {
 							musicPlayerConnectionQueue[message.member.voiceChannel] = null;
-							message.reply('You need to join a voice channel first!');
+							message.reply('You need to join a voice channel first!').then(message => message.delete(10000));
 						}
 					});
 					
