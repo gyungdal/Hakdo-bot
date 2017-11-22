@@ -23,7 +23,7 @@
 					const uuid = (message.content.includes('<@') && message.content.includes('>')) ? (message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'))) : null;
 					const talk = (message.content.substring(message.content.indexOf(' ') + 1 , 
 							((message.content.includes('<@') && message.content.includes('>')) ? message.content.lastIndexOf(' ') + 1 : message.content.length ))).replaceAll('"', "'");
-					message.delete();
+					//message.delete();
 					exec('say "' + talk + '" -o temp.aac', (error, stdout, stderr) =>{
 						if(error){
 							const embed = new Discord.RichEmbed()
