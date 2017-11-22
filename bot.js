@@ -537,7 +537,7 @@
 					break;
 				}
 				case "restart":{
-					process.send('restart');
+					process.exit(-1);
 					break;
 				}
 				case "python" : {
