@@ -37,13 +37,19 @@
 							return;
 						}
 						var embed = new Discord.RichEmbed()
-								.addField("TALK", talk);
-						if (uuid != null)
+								.addField("TALK", talk);	
+						var voiceChannel = null;
+						if (uuid != null){
+							console.log(message.channel.members.find(member => member.id == uuid));
+							voiceChannel = message.channel.members.find(member => member.id == uuid).voiceChannel;
 							embed.addField("UUID", "<@" + uuid + ">");
-						message.channel.send({embed}).then(message => message.delete(10000));							
-						if (message.member.voiceChannel) {
+						}else{
+							voiceChannel = message.member.voiceChannel;
+						}
+						message.channel.send({embed}).then(message => message.delete(10000));	
+						if (voiceChannel) {
 							console.log("inner");
-							message.member.voiceChannel.join()
+							voiceChannel.join()
 								.then(connection => {
 									console.log("TTS");
 									connection.playFile("temp.aac");
@@ -52,6 +58,7 @@
 							musicPlayerConnectionQueue[message.member.voiceChannel] = null;
 							message.reply('You need to join a voice channel first!').then(message => message.delete(10000));
 						}
+						voiceChannel = null;
 					});
 					
 					
