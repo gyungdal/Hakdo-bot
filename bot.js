@@ -83,6 +83,25 @@
 				process.send({type:"token", token:token});
 				break;
 			}
+			case "한강":
+			case "hangang":{
+				const request = require('request');
+				request('http://hangang.dkserver.wo.tc', (err, respon, body) => {
+					if(err){
+						message.channel.send(err);
+						return;
+					}
+					const json = JSON.parse(body);
+					const embed = new Discord.RichEmbed()
+						.setColor(0x76FF03)
+						.setTimestamp()
+						.addField('수온', json["temp"])
+						.addField('측정 시간', json["time"])
+						.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+					message.channel.send({embed});
+				});
+				break;
+			}
 			case "지진" : {
 				const urlencode = require('urlencode');
 				const request = require('request');
