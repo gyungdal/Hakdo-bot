@@ -89,6 +89,12 @@
 				request('http://hangang.dkserver.wo.tc', (err, respon, body) => {
 					if(err){
 						message.channel.send(err);
+						const embed = new Discord.RichEmbed()
+							.setColor(0xFF0000)
+							.setTimestamp()
+							.addField('ERROR', err)
+							.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+						message.channel.send({embed});
 						return;
 					}
 					const json = JSON.parse(body);
@@ -127,7 +133,7 @@
 						embed.addField(title, desc)
 					});
 					message.channel.send({embed});
-						
+					embed = null;
 				});
 				break;
 			}
@@ -220,21 +226,28 @@
 					message.member.voiceChannel.join()
 						.then(connection => {
 							musicPlayerConnectionQueue[message.member.voiceChannel] = connection;
-							const url = message.content.substring(message.content.lastIndexOf(' ')).trim();
-							try{
-								const audio_stream = YTDL(url);
-								if(musicQueue[message.member.voiceChannel] == null ||
-									musicQueue[message.member.voiceChannel].length == 0){
-									musicQueue[message.member.voiceChannel] = []; 
-									musicQueue[message.member.voiceChannel].push(url);
-									musicPlayerConnectionQueue[message.member.voiceChannel] = connection;
-									musicPlayer(message.member.voiceChannel);
-								}else{
-									musicQueue[message.member.voiceChannel].push(url);
-								}
-							}catch(e){
-								console.log(e);
-							}
+							var url = message.content.substring(message.content.indexOf(' ')).trim();
+							if(!url.includes("http://")){
+								const request = require('request');
+								const urlencode = require('urlencode');
+								request("https://www.youtube.com/results?search_query=" + urlencode(url), (error, response, body)=>{
+									if(error){
+										message.reply(error);
+										return;
+									}
+									body = body.substring(body.indexOf('/watch'));
+									body = body.substring(0, body.indexOf('"'));
+									body = body.replaceAll('%3F', '?')
+										.replaceAll('%3f', '?')
+										.replaceAll('%3d', '=')
+										.replaceAll('%3D', '=');	
+									console.log(body);
+									url = "https://youtube.com" + body;
+									musicPlay(connection, message, url);
+								});
+							}else
+								musicPlay(connection, message, url);
+							url = null;
 						}).catch(console.log);
 				} else {
 					musicPlayerConnectionQueue[message.member.voiceChannel] = null;
@@ -252,8 +265,26 @@
 				break;
 			}
 		}
-	});
-	
+	});	
+
+	function musicPlay(connection,message, url){
+		
+                                                        try{
+                                                                const audio_stream = YTDL(url);
+                                                                if(musicQueue[message.member.voiceChannel] == null ||
+                                                                        musicQueue[message.member.voiceChannel].length == 0){
+                                                                        musicQueue[message.member.voiceChannel] = [];
+                                                                        musicQueue[message.member.voiceChannel].push(url);
+                                                                        musicPlayerConnectionQueue[message.member.voiceChannel] = connection;
+                                                                        musicPlayer(message.member.voiceChannel);
+                                                                }else{
+                                                                        musicQueue[message.member.voiceChannel].push(url);
+                                                                }
+                                                        }catch(e){
+                                                                console.log(e);
+                                                              url = null;
+                                                       }
+	}	
 	function musicPlayer(voiceChannel){	
 		console.log(musicQueue[voiceChannel][0]);
 		const audio_stream = YTDL(musicQueue[voiceChannel][0]);
@@ -618,101 +649,6 @@
 						message.channel.send({embed});	
 					});
 				}
-			}
-		}
-	});
-	
-	//이 아래는 수정 필요
-	
-	client.on('message', message => {
-		if(admins.indexOf(message.author.id) != -1 & 
-			message.content.indexOf('h!sshList') == 0){	
-			const embed = new Discord.RichEmbed()
-				.setColor(0x76FF03)
-				.setTimestamp()
-				.addField("Output", sshConnect)
-				.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
-			message.channel.send({embed});	
-		}
-	});
-
-	var sshConnect = {};
-	var seq = {};
-
-	client.on('message', message => {
-		var url, user, port;
-		if(message.content.indexOf('h!ssh ') == 0){
-			console.log('SSH');
-			const argv = message.content.split(' ');
-			console.log(argv);
-			var before = '';
-			for(var value in argv){
-				value = argv[value];
-				switch(before){
-					case '-url' : 
-						url = value; 
-						console.log('URL : ' + url);
-						break;
-					case '-p' : 
-						port = value; 
-						console.log('PORT : ' + url);
-						break;
-					case '-user' : 
-						user = value; 
-						console.log('USER : ' + url);
-						break;
-				}
-			
-				console.log(value);
-				before = value;
-			}
-			if(url.indexOf("@") != -1){
-				user = url.split("@")[0];
-				url = url.split("@")[1];
-			}
-			//h!ssh -url gyungdal.iptime.org -p 24 -user gyungdal -pw aa1003
-			// const channel = client.channels.find('name', 'general');
-			// channel.sendMessage(require('util').format('%s:%d -u %s -p %s', url, port, user, pw));
-			if(typeof url != 'undefined' & typeof user != 'undefined'){
-				if(typeof port == 'undefined'){
-					port = 22;
-				}
-				const spawn = require("child_process").spawn;
-				seq[message.author.id] = spawn("ssh", [user + "@" + url, "-p", port, "-t", "-t"], {stdio:['pipe','pipe','pipe']});
-				seq[message.author.id].stdin.write('\r\n');
-				seq[message.author.id].stderr.on("data", function(data) {	
-					console.log(data);
-					const embed = new Discord.RichEmbed()
-						.setTitle("Error")
-						.setColor(0xD50000)
-						.setTimestamp()
-						.addField("Description", data)
-						.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
-					message.channel.send({embed});	
-					return;
-				});
-				seq[message.author.id].stdout.on("data", function(data) {
-					console.log(data);
-					const embed = new Discord.RichEmbed()
-						.setTitle("Success")
-						.setColor(0x76FF03)
-						.setTimestamp()
-						.addField("Output", data)
-						.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
-					});
-					sshConnect[message.author.id] = true;
-				}
-			url = user = port = before = null;
-		}
-		if(message.content.indexOf('!') == 0 & sshConnect[message.author.id] == true){
-			if(message.content.indexOf('!exit') == 0){
-				seq[message.author.id].stdin.write('exit\r\n');
-				seq[message.author.id].stdin.end();
-				delete sshConnect[message.author.id];
-				message.reply("ssh close");
-				delete seq[message.author.id];
-			}else{
-				seq[message.author.id].stdin.write(message.content.substring(1) + '\r\n');
 			}
 		}
 	});
