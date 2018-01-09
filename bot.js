@@ -20,9 +20,20 @@
 		switch(message.content.substring(message.content.indexOf('h!') + 2, a)){
 			case "talk" : {
 				try{
-					const uuid = (message.content.includes('<@') && message.content.includes('>')) ? (message.content.substring(message.content.lastIndexOf('<@') + 2, message.content.lastIndexOf('>'))) : null;
-					const talk = (message.content.substring(message.content.indexOf(' ') + 1 , 
-							((message.content.includes('<@') && message.content.includes('>')) ? message.content.lastIndexOf(' ') + 1 : message.content.length ))).replaceAll('"', "'");
+					message.content = message.content.replaceAll("h!talk", "");
+					const uuid = message.content
+							.replace(/<:[A-Za-z0-9_]+[:][0-9]+[>]/g, "")
+							.match(/<@[0-9]+[>]/g);
+					console.log(uuid);
+					const talk = message.content
+							.replace(/<:[A-Za-z0-9_]+[:][0-9]+[>]/g, "")
+							.replace(/<@[0-9]+[>]/g, "")
+							.replace(/[\uD83C-\uDBff\uDC00-\uDFFF]+/g, "")
+							.replaceAll('"', "'")
+							.trim();
+					if(talk.trim() == "")
+						return;
+					console.log(talk);
 					//message.delete();
 					exec('say "' + talk + '" -o temp.aac', (error, stdout, stderr) =>{
 						if(error){
@@ -40,9 +51,12 @@
 								.addField("TALK", talk);	
 						var voiceChannel = null;
 						if (uuid != null){
-							console.log(message.channel.members.find(member => member.id == uuid));
-							voiceChannel = message.channel.members.find(member => member.id == uuid).voiceChannel;
-							embed.addField("UUID", "<@" + uuid + ">");
+							const temp = uuid[0]
+							.replaceAll("<@", "")
+							.replaceAll(">", "");
+							//console.log(message.channel.members.find(member => member.id == uuid));
+							voiceChannel = message.channel.members.find(member => member.id == temp).voiceChannel;
+							embed.addField("UUID", "<@" + temp + ">");
 						}else{
 							voiceChannel = message.member.voiceChannel;
 						}
@@ -256,12 +270,13 @@
 				break;
 			}
 			case "out":{
-				musicQueue[message.member.voiceChannel] = [];
+				delete musicQueue[message.member.voiceChannel];
 				message.member.voiceChannel.leave();
 				if(musicPlayerConnectionQueue[message.member.voiceChannel] != null){
 					musicPlayerConnectionQueue[message.member.voiceChannel].disconnect();
 					musicPlayerConnectionQueue[message.member.voiceChannel] = null;
 				}
+				delete musicPlayerConnectionQueue[message.member.voiceChannel];
 				break;
 			}
 		}
@@ -376,6 +391,7 @@
 		console.log(userlist);
 		userlist.forEach(function(user){
 			if(user.id == require('./token').botId){
+				return;
 				var str = message.content.substring(message.content.lastIndexOf('>') + 1);
 				
 				if(message.content.indexOf('-n') != -1){

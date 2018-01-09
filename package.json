@@ -1,0 +1,43 @@
+{
+  "name": "hakdo-bot",
+  "version": "1.0.0",
+  "description": "hakdo bot!",
+  "main": "app.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "apiai": "^4.0.3",
+    "async": "^2.5.0",
+    "casual": "^1.5.19",
+    "cheerio": "^1.0.0-rc.2",
+    "discord.js": "^11.2.1",
+    "express": "^4.15.3",
+    "ffmpeg-binaries": "^3.2.2-3",
+    "http": "^0.0.0",
+    "node-opus": "^0.2.7",
+    "nodemon": "^1.12.1",
+    "pty.js": "^0.3.1",
+    "request": "^2.81.0",
+    "sequest": "^0.10.0",
+    "ssh2": "^0.5.5",
+    "urlencode": "^1.1.0",
+    "uuid-v4": "^0.1.0",
+    "xml2js": "^0.4.17",
+    "ytdl-core": "^0.17.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://Gyeongsik_Kim@bitbucket.org/Gyeongsik_Kim/hakdo-bot.git"
+  },
+  "keywords": [
+    "hakdo"
+  ],
+  "author": "GyungDal",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/Gyeongsik_Kim/hakdo-bot#readme"
+}

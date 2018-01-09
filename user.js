@@ -21,7 +21,7 @@
 							message.channel.send('t!daily' + (daily != '' ? daily : ''));
 							if(rep != '')
 								message.channel.send('t!rep ' + rep);
-						}, (1000 * 3600 * 24) + 1000);				
+						}, (1000 * 3600 * 24) + 5000);				
 						break;		
 				}
 				case "stop":{
@@ -45,27 +45,35 @@
 				}
 				case "enable" :{
 					console.log("레벨업 활성화!");
-					autoLevelup = true;
-					cChannel = message.channel;
-					cinterval = setInterval(function(){
-						console.log("현재 시간 : " + (new Date().getTime()));
-						if((before + (10 * 1000)) < (new Date().getTime())){	
-							console.log("10초 지남!, 레벨업 시작!");
-							if(autoLevelup){
-								const casual = require('casual');
-								cChannel.send(casual.text);
+					if(autoLevelup){
+						message.channel.send("이미 활성화 되어 있습니다");
+					}else{
+						autoLevelup = true;
+						cChannel = message.channel;
+						cinterval = setInterval(function(){
+							console.log("현재 시간 : " + (new Date().getTime()));
+							if((before + (10 * 1000)) < (new Date().getTime())){	
+								console.log("10초 지남!, 레벨업 시작!");
+								if(autoLevelup){
+									const casual = require('casual');
+									cChannel.send(casual.text);
+								}
 							}
-						}
-					}, 1200);
+						}, 1200);
+					}
 					break;
 				}
 				case "disable" : {
 					console.log("레벨업 비활성화...");
-					autoLevelup = false;
-					cChannel = null;
-					clearInterval(cinterval);
-					cinterval = null;
-					message.channel.send("Level up Done");
+					if(autoLevelup){
+						autoLevelup = false;
+						cChannel = null;
+						clearInterval(cinterval);
+						cinterval = null;
+						message.channel.send("Level up Done");
+					}else{
+						message.channel.send("???");
+					}
 					break;
 				}
 				default : break;
