@@ -12,12 +12,127 @@
 	var musicPlayerQueue = [];
 	var musicPlayerConnectionQueue = [];
 	var musicNextSong = [];
-	
+	var ttsList = [];
+	 
+	client.on('message', message => {
+		if(!message.content.includes('h!')){
+			const index = ttsList.findIndex((item) => {
+				console.log("item : " + item.user);
+				console.log("author : " + message.author.id);
+				return item["user"] == message.author.id;
+			});
+			console.log(index);
+			if(index != -1 && message.embeds.length == 0){
+				if(ttsList[index]["channel"] != message.channel)
+					return;
+				const talk = message.content
+						.replace(/<:[A-Za-z0-9_]+[:][0-9]+[>]/g, "")
+						.replace(/<@[0-9]+[>]/g, "")
+						.replace(/[\uD83C-\uDBff\uDC00-\uDFFF]+/g, "")
+						.replaceAll('"', "'")
+						.trim();
+				if(talk.trim() == "")
+					return;
+				console.log(talk);
+				//message.delete();
+				exec('say "' + talk + '" -o temp.aac', (error, stdout, stderr) =>{
+					if(error){
+						const embed = new Discord.RichEmbed()
+							.setTitle("Error")
+							.setColor(0xD50000)
+							.setTimestamp()
+							.addField("Description", error)
+							.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+						message.channel.send({embed}).then(message => message.delete(10000));		
+						
+						return;
+					}
+					ttsList[index].lastSendTime = Date.now();
+					ttsList[index]["connection"].playFile('temp.aac');
+				});
+			}
+		}
+	});
 	client.on('message', message => {
 		if(message.content.indexOf('h!') != 0)
 			return;
 		const a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
-		switch(message.content.substring(message.content.indexOf('h!') + 2, a)){
+		switch(message.content.substring(message.content.indexOf('h!') + 2, a).trim()){
+			case "talkEnable" : {
+				console.log("TTS ENABLE");
+				const index = ttsList.findIndex((item)=>{
+					return item["user"] == message.author.id;
+				});
+				console.log(index);
+				if(index != -1)
+					return;
+				console.log("talk enable");
+				const id = message.author.id;
+				const uuid = message.content
+						.replace(/<:[A-Za-z0-9_]+[:][0-9]+[>]/g, "")
+						.match(/<@[0-9]+[>]/g);
+				if (uuid != null){
+					const temp = uuid[0]
+					.replaceAll("<@", "")
+					.replaceAll(">", "");
+					console.log("UUID = " + temp);
+					message.author.id = temp;
+					//console.log(message.channel.members.find(member => member.id == uuid));
+				}
+				const member = message.channel.members.find(member => member.id == message.author.id);
+				console.log(member.name);
+				const voiceChannel = member.voiceChannel;
+				console.log("VOICECAHNNEL");
+				console.log(voiceChannel);
+				if (voiceChannel) {
+					console.log("inner");
+					voiceChannel.join()
+						.then(connection => {
+							console.log("INNER!!!");
+							ttsList.push({
+								connection:connection
+								, channel:message.channel
+								, user:id
+								, target:message.author.id
+								, lastSendTime:Date.now()
+								, interval:setInterval(()=>{
+									const index = ttsList.findIndex((item)=>{
+										return item["user"] == message.author.id;
+									});
+									const diff = ((Date.now() - ttsList[index].lastSendTime) / 1000);
+									if(diff > 3600){
+										ttsList.splice(index , 1);
+										message.channel.send("TTS OUT");
+									}
+								}, 60 * 1000)
+							});
+							console.log(ttsList[ttsList.length - 1]);
+						}).catch(console.log);
+				} else {
+					message.reply('You need to join a voice channel first!').then(message => message.delete(10000));
+				}
+				break;
+			}
+			case "talkDisable" : {
+				const uuid = message.content
+						.replace(/<:[A-Za-z0-9_]+[:][0-9]+[>]/g, "")
+						.match(/<@[0-9]+[>]/g);
+				if (uuid != null){
+					const temp = uuid[0]
+					.replaceAll("<@", "")
+					.replaceAll(">", "");
+					message.author.id = temp;
+				}
+				
+				const index = ttsList.findIndex((item)=>{
+					return item["user"] == message.author.id;jdj 
+				});
+				if(index == -1)
+					return;
+				clearInterval(ttsList[index - 1].interval);
+				ttsList = ttsList.splice(index - 1, 1);
+				break;
+			}
 			case "talk" : {
 				try{
 					message.content = message.content.replaceAll("h!talk", "");
