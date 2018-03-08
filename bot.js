@@ -7,15 +7,18 @@
 	const opus = require('node-opus');
 	const YTDL = require('ytdl-core');	
 	
-	var admins = [require('./token').adminId];
+	var admins = require('./token').adminId;
 	var musicQueue = [];
 	var musicPlayerQueue = [];
 	var musicPlayerConnectionQueue = [];
 	var musicNextSong = [];
 	var ttsList = [];
+	var ttsBanList = [];
 	 
 	client.on('message', message => {
-		if(!message.content.includes('h!')){
+		if(message.author.bot)
+			return;
+		if(message.content.indexOf('!') != 1){
 			const index = ttsList.findIndex((item) => {
 				console.log("item : " + item.user);
 				console.log("author : " + message.author.id);
@@ -35,6 +38,7 @@
 					return;
 				console.log(talk);
 				//message.delete();
+				exec('rm -rf temp.aac');	
 				exec('say "' + talk + '" -o temp.aac', (error, stdout, stderr) =>{
 					if(error){
 						const embed = new Discord.RichEmbed()
@@ -49,12 +53,16 @@
 					}
 					ttsList[index].lastSendTime = Date.now();
 					ttsList[index]["connection"].playFile('temp.aac');
+					
+
 				});
 			}
 		}
 	});
 	client.on('message', message => {
 		if(message.content.indexOf('h!') != 0)
+			return;
+		if(message.author.bot)
 			return;
 		const a = message.content.indexOf(' ') != -1 ? message.content.indexOf(' ') : message.content.length;
 		switch(message.content.substring(message.content.indexOf('h!') + 2, a).trim()){
@@ -95,14 +103,15 @@
 								, user:id
 								, target:message.author.id
 								, lastSendTime:Date.now()
+								, liveTime : 600
 								, interval:setInterval(()=>{
 									const index = ttsList.findIndex((item)=>{
-										return item["user"] == message.author.id;
+										return item.user == id;
 									});
 									const diff = ((Date.now() - ttsList[index].lastSendTime) / 1000);
-									if(diff > 3600){
+									if(diff > ttsList[index].liveTime){
 										ttsList.splice(index , 1);
-										message.channel.send("TTS OUT");
+										message.channel.send("<@" + id + "> TTS OUT");
 									}
 								}, 60 * 1000)
 							});
@@ -125,12 +134,12 @@
 				}
 				
 				const index = ttsList.findIndex((item)=>{
-					return item["user"] == message.author.id;jdj 
+					return item["user"] == message.author.id;
 				});
 				if(index == -1)
 					return;
-				clearInterval(ttsList[index - 1].interval);
-				ttsList = ttsList.splice(index - 1, 1);
+				clearInterval(ttsList[index].interval);
+				ttsList.splice(index, 1);
 				break;
 			}
 			case "talk" : {
@@ -150,6 +159,7 @@
 						return;
 					console.log(talk);
 					//message.delete();
+					exec('rm -rf temp.aac');		
 					exec('say "' + talk + '" -o temp.aac', (error, stdout, stderr) =>{
 						if(error){
 							const embed = new Discord.RichEmbed()
@@ -182,7 +192,7 @@
 								.then(connection => {
 									console.log("TTS");
 									connection.playFile("temp.aac");
-								}).catch(console.log);
+							}).catch(console.log);
 						} else {
 							musicPlayerConnectionQueue[message.member.voiceChannel] = null;
 							message.reply('You need to join a voice channel first!').then(message => message.delete(10000));
@@ -356,7 +366,7 @@
 						.then(connection => {
 							musicPlayerConnectionQueue[message.member.voiceChannel] = connection;
 							var url = message.content.substring(message.content.indexOf(' ')).trim();
-							if(!url.includes("http://")){
+							if(!url.includes("http")){
 								const request = require('request');
 								const urlencode = require('urlencode');
 								request("https://www.youtube.com/results?search_query=" + urlencode(url), (error, response, body)=>{
@@ -398,22 +408,21 @@
 	});	
 
 	function musicPlay(connection,message, url){
-		
-                                                        try{
-                                                                const audio_stream = YTDL(url);
-                                                                if(musicQueue[message.member.voiceChannel] == null ||
-                                                                        musicQueue[message.member.voiceChannel].length == 0){
-                                                                        musicQueue[message.member.voiceChannel] = [];
-                                                                        musicQueue[message.member.voiceChannel].push(url);
-                                                                        musicPlayerConnectionQueue[message.member.voiceChannel] = connection;
-                                                                        musicPlayer(message.member.voiceChannel);
-                                                                }else{
-                                                                        musicQueue[message.member.voiceChannel].push(url);
-                                                                }
-                                                        }catch(e){
-                                                                console.log(e);
-                                                              url = null;
-                                                       }
+		try{
+			const audio_stream = YTDL(url);
+			if(musicQueue[message.member.voiceChannel] == null ||
+				musicQueue[message.member.voiceChannel].length == 0){
+				musicQueue[message.member.voiceChannel] = [];
+				musicQueue[message.member.voiceChannel].push(url);
+				musicPlayerConnectionQueue[message.member.voiceChannel] = connection;
+				musicPlayer(message.member.voiceChannel);
+			}else{
+				musicQueue[message.member.voiceChannel].push(url);
+			}
+		}catch(e){
+			console.log(e);
+			url = null;
+		}
 	}	
 	function musicPlayer(voiceChannel){	
 		console.log(musicQueue[voiceChannel][0]);
@@ -617,14 +626,14 @@
 											const json = JSON.parse(body);
 												console.log(body);
 
-																				const embed = new Discord.RichEmbed()
-												.setTitle(`Search <${json['items'][0]['title'].replace(/<(?:.|\n)*?>/gm, '')}>`)
-												.setURL(json['items'][0]['link'])
-																						.setColor(0xd50000)
-																						.setTimestamp()
-																						.addField("Description", json["items"][0]['description'].replace(/<(?:.|\n)*?>/gm, ''))
-																						.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
-																				message.channel.send({embed});
+												const embed = new Discord.RichEmbed()
+													.setTitle(`Search <${json['items'][0]['title'].replace(/<(?:.|\n)*?>/gm, '')}>`)
+													.setURL(json['items'][0]['link'])
+													.setColor(0xd50000)
+													.setTimestamp()
+													.addField("Description", json["items"][0]['description'].replace(/<(?:.|\n)*?>/gm, ''))
+													.setFooter("Hakdo bot | Developed by GyungDal", client.user.avatarURL);
+												message.channel.send({embed});
 											}catch(e){
 												if(namuSearch(message, str) == null)
 													message.channel.send("NOT FOUND...");
@@ -726,6 +735,67 @@
 				}
 				case "restart":{
 					process.exit(-1);
+					break;
+				}
+				case "ttsBanList" : {
+					for (let item of ttsBanList){
+						
+					}
+					break;
+				}
+				case "ttsSetTime" : {
+					const splitData = message.content.split(' ');
+					var uuid = message.author.id;
+					var time = 100;
+					for(const i in splitData){
+						if(splitData[i].includes("<@")){
+							uuid = splitData[i]
+								.replace(/<:[A-Za-z0-9_]+[:][0-9]+[>]/g, "")
+								.match(/<@[0-9]+[>]/g);
+						}else if(!splitData[i].includes("!")){
+							time = Number(splitData[i]);
+						}
+					}
+
+					const index = ttsList.findIndex((item)=> item.user == uuid);
+					if(index != -1){
+						ttsList[index].liveTime = time;
+					}
+					message.channel.sendMessage(`<@${uuid}> Now TTL : ${ttsList[index].liveTime}\nLastSendTime : ${new Date(ttsList[index].lastSendTime).toString()}`);
+					break;
+				}
+				case "ttsGetTime" : {
+					const splitData = message.content.split(' ');
+					var uuid = message.author.id;
+					for(const i in splitData){
+						if(splitData[i].includes("<@")){
+							uuid = splitData[i]
+								.replace(/<:[A-Za-z0-9_]+[:][0-9]+[>]/g, "")
+								.match(/<@[0-9]+[>]/g);
+						}
+					}
+
+					const index = ttsList.findIndex((item)=> item.user == uuid);
+					if(index != -1){
+						message.channel.sendMessage(`<@${uuid}> Now TTL : ${ttsList[index].liveTime}\nLastSendTime : ${new Date(ttsList[index].lastSendTime).toString()}`);
+					}
+					break;
+				}
+				case "ttsBan" : {						
+					const uuid = message.content
+						.replace(/<:[A-Za-z0-9_]+[:][0-9]+[>]/g, "")
+						.match(/<@[0-9]+[>]/g);
+					const index = ttsList.findIndex((item) => {
+						console.log("item : " + item.user);
+						console.log("author : " + message.author.id);
+						return item["user"] == message.author.id;
+					});
+					if(index != -1){
+						ttsList.splice(index, 1);
+					}
+					if(!ttsBanList.includes(uuid)){
+						ttsBanList.push(uuid);
+					}
 					break;
 				}
 				case "python" : {
